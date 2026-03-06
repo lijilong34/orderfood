@@ -27,19 +27,19 @@ jobs:
          mvn clean package -DskipTests
   
      - name: 开始编译前端项目
-       run: |                                # 这里修复了缩进
-         cd $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfootbefore/
+       run: |
+         cd $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodbefore/
          npm install
          npm run build
 
      - name: 上传后端项目
        uses: actions/upload-artifact@v4
        with:
-         name: orderfoodafter-$(date +%s)-SNAPSHOT.jar
-         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodafter/target/orderfoodafter-*-SNAPSHOT.jar
+         name: orderfoodafter-$(date +%s).jar
+         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodafter/target/*.jar
 
      - name: 上传前端项目
        uses: actions/upload-artifact@v4
        with:
-         name: orderfootbefore-$(date +%s)
-         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfootbefore/dist/*
+         name: orderfoodbefore-$(date +%s)
+         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodbefore/dist/
