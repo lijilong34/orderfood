@@ -36,10 +36,10 @@ jobs:
        uses: actions/upload-artifact@v4
        with:
          name: orderfoodafter-$(date +%s).jar
-         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodafter/target/*.jar
+         path: ${{ github.workspace }}/buildproject_workspace/orderfood/orderfoodafter/target/*.jar
 
      - name: 上传前端项目
        uses: actions/upload-artifact@v4
        with:
-         name: orderfoodbefore-$(date +%s)
-         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfootbefore/dist/
+         name: orderfootbefore-$(date +%s)
+         path: ${{ github.workspace }}/buildproject_workspace/orderfood/orderfootbefore/dist/
