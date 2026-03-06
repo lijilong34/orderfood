@@ -28,7 +28,7 @@ jobs:
   
      - name: 开始编译前端项目
        run: |
-         cd $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodbefore/
+         cd $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfootbefore/
          npm install
          npm run build
 
@@ -42,4 +42,4 @@ jobs:
        uses: actions/upload-artifact@v4
        with:
          name: orderfoodbefore-$(date +%s)
-         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodbefore/dist/
+         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfootbefore/dist/
