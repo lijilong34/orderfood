@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.ProductDetailMapper">
+  <resultMap id="BaseResultMap" type="org.example.orderfoodafter.entity.ProductDetail">
+    <!--@mbg.generated-->
+    <!--@Table product_detail-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="product_id" jdbcType="BIGINT" property="productId" />
+    <result column="image_path1" jdbcType="VARCHAR" property="imagePath1" />
+    <result column="image_path2" jdbcType="VARCHAR" property="imagePath2" />
+    <result column="image_path3" jdbcType="VARCHAR" property="imagePath3" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, product_id, image_path1, image_path2, image_path3
+  </sql>
+</mapper>

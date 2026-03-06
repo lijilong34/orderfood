@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.OrderMapper">
+  <resultMap id="BaseResultMap" type="org.example.orderfoodafter.entity.Order">
+    <!--@mbg.generated-->
+    <!--@Table `order`-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="order_no" jdbcType="VARCHAR" property="orderNo" />
+    <result column="user_id" jdbcType="BIGINT" property="userId" />
+    <result column="shop_id" jdbcType="BIGINT" property="shopId" />
+    <result column="shopname" property="shopname"/>
+    <result column="total_amount" jdbcType="DECIMAL" property="totalAmount" />
+    <result column="pay_amount" jdbcType="DECIMAL" property="payAmount" />
+    <result column="discount_amount" jdbcType="DECIMAL" property="discountAmount" />
+    <result column="pay_type" jdbcType="TINYINT" property="payType" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="address" jdbcType="VARCHAR" property="address" />
+    <result column="phone" jdbcType="VARCHAR" property="phone" />
+    <result column="receiver" jdbcType="VARCHAR" property="receiver" />
+    <result column="pay_time" jdbcType="TIMESTAMP" property="payTime" />
+    <result column="finish_time" jdbcType="TIMESTAMP" property="finishTime" />
+    <result column="cancel_time" jdbcType="TIMESTAMP" property="cancelTime" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="table_id" jdbcType="BIGINT" property="tableId" />
+    <result column="remark" jdbcType="VARCHAR" property="remark" />
+    <result column="order_type" jdbcType="TINYINT" property="orderType" />
+      <result column="nickname" property="nickname"/>
+      <result column="tableNo" property="tableNo"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, order_no, user_id, shop_id, total_amount, pay_amount, discount_amount, pay_type, 
+    `status`, address, phone, receiver, pay_time, finish_time, cancel_time, create_time, 
+    update_time, table_id, remark, order_type
+  </sql>
+
+  <select id="selectbyorderid" resultMap="BaseResultMap">
+    select a.id,a.order_no,a.user_id,a.total_amount,a.pay_amount,a.discount_amount,a.pay_type,a.`status`,a.address,a.phone,a.receiver,a.pay_time,a.finish_time,a.remark,a.order_type from `order` a INNER JOIN shop s ON a.shop_id=s.id WHERE s.id=#{shopid}
+    </select>
+    
+  <select id="selectorderbyuser" parameterType="java.util.Map" resultMap="BaseResultMap">
+    SELECT o.id,o.order_no,o.shop_id,shop.`name` as shopname,o.total_amount,o.pay_amount,o.discount_amount,o.`status`,o.create_time,o.pay_time,o.finish_time,o.cancel_time,o.order_type,o.pay_type
+    FROM `order` o
+    INNER JOIN shop ON o.shop_id=shop.id
+    WHERE o.user_id = #{userId}
+    <if test="ew != null and ew.customSqlSegment != ''">
+      AND ${ew.customSqlSegment.replace('WHERE','')}
+    </if>
+  </select>
+
+  <select id="selectorderbyuserByParams" parameterType="java.util.Map" resultMap="BaseResultMap">
+    SELECT o.id,o.order_no,shop.`name` as shopname,o.total_amount,o.pay_amount,o.discount_amount,o.`status`,o.create_time,o.pay_time,o.finish_time,o.cancel_time,o.order_type,o.pay_type
+    FROM `order` o
+    INNER JOIN shop ON o.shop_id=shop.id
+    <where>
+        <if test="params.status != null">
+            AND o.status = #{params.status}
+        </if>
+        <if test="params.userId != null">
+            AND o.user_id = #{params.userId}
+        </if>
+        <if test="params.shopname != null and params.shopname != ''">
+            AND shop.name LIKE CONCAT('%', #{params.shopname}, '%')
+        </if>
+        <if test="params.minAmount != null">
+            AND o.total_amount >= #{params.minAmount}
+        </if>
+        <if test="params.maxAmount != null">
+            AND o.total_amount &lt;= #{params.maxAmount}
+        </if>
+        <if test="params.startTime != null">
+            AND o.create_time >= #{params.startTime}
+        </if>
+        <if test="params.endTime != null">
+            AND o.create_time &lt;= #{params.endTime}
+        </if>
+    </where>
+    ORDER BY o.create_time DESC
+  </select>
+
+
+  <select id="selectOrderByshopid" resultMap="BaseResultMap">
+      SELECT `order`.id,`order`.shop_id,`order`.order_no,`user`.nickname,`order`.pay_amount,`order`.pay_type,`order`.status,`order`.address,`order`.phone,`order`.receiver,`order`.create_time,`table_info`.table_no as tableNo,`order`.remark,`order`.order_type FROM `order` INNER JOIN `user` ON `order`.user_id = `user`.id LEFT JOIN `table_info` ON `order`.table_id=`table_info`.id
+      <trim prefix="WHERE" prefixOverrides="AND |OR ">
+          <if test="ew != null and ew.customSqlSegment != ''">
+              ${ew.customSqlSegment.replace('WHERE','')}
+          </if>
+      </trim>
+    </select>
+    
+    <select id="selectLatestOrdersByShopId" resultMap="BaseResultMap">
+        SELECT `order`.id,`order`.shop_id,`order`.order_no,`user`.nickname,`order`.pay_amount,`order`.pay_type,`order`.status,`order`.address,`order`.phone,`order`.receiver,`order`.create_time,`table_info`.table_no,`order`.remark,`order`.order_type 
+        FROM `order` 
+        INNER JOIN `user` ON `order`.user_id = `user`.id 
+        LEFT JOIN `table_info` ON `order`.table_id=`table_info`.id 
+        WHERE `order`.shop_id = #{shopId}
+        ORDER BY `order`.create_time DESC 
+        LIMIT 10
+    </select>
+</mapper>

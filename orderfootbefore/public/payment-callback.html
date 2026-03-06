@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付处理中...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #e54d42;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>正在处理支付结果...</h2>
+        <p>请稍候，即将跳转</p>
+    </div>
+
+    <script>
+        // 获取URL参数
+        function getUrlParams() {
+            const params = {};
+            const urlParams = new URLSearchParams(window.location.search);
+            for (const [key, value] of urlParams) {
+                params[key] = value;
+            }
+            return params;
+        }
+
+        // 保存token到localStorage
+        function saveToken() {
+            const params = getUrlParams();
+            if (params.token) {
+                localStorage.setItem('token', params.token);
+                // 尝试解析token中的用户信息
+                try {
+                    const payload = JSON.parse(atob(params.token.split('.')[1]));
+                    if (payload.sub) {
+                        localStorage.setItem('userid', payload.sub);
+                    }
+                } catch (error) {
+                    console.error('解析token失败:', error);
+                }
+            }
+            return params;
+        }
+
+        // 跳转到本地开发环境
+        function redirectToLocal(params) {
+            // 构建本地URL
+            const localUrl = 'http://localhost:5173/home/PaymentSuccess';
+            
+            // 保留需要的参数
+            const validParams = {};
+            if (params.orderNo) validParams.orderNo = params.orderNo;
+            if (params.amount) validParams.amount = params.amount;
+            if (params.deliveryMethod) validParams.deliveryMethod = params.deliveryMethod;
+            if (params.type) validParams.type = params.type;
+            
+            // 如果是充值订单（订单号以RECHARGE_开头），添加充值类型标识
+            if (params.orderNo && params.orderNo.startsWith('RECHARGE_')) {
+                validParams.type = 'recharge';
+            }
+            
+            // 构建查询字符串
+            const queryString = Object.keys(validParams)
+                .map(key => `${key}=${encodeURIComponent(validParams[key])}`)
+                .join('&');
+            
+            const finalUrl = queryString ? `${localUrl}?${queryString}` : localUrl;
+            
+            console.log('跳转到本地URL:', finalUrl);
+            
+            // 延迟跳转，让用户看到处理页面
+            setTimeout(() => {
+                window.location.href = finalUrl;
+            }, 1500);
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('支付回调页面加载完成');
+            
+            // 保存token
+            const params = saveToken();
+            console.log('保存的参数:', params);
+            
+            // 跳转到本地环境
+            redirectToLocal(params);
+        });
+    </script>
+</body>
+</html>

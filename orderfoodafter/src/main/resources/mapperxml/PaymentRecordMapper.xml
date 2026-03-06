@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.PaymentRecordMapper">
+  <resultMap id="BaseResultMap" type="org.example.orderfoodafter.entity.PaymentRecord">
+    <!--@mbg.generated-->
+    <!--@Table payment_record-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="order_id" jdbcType="BIGINT" property="orderId" />
+    <result column="order_no" jdbcType="VARCHAR" property="orderNo" />
+    <result column="pay_no" jdbcType="VARCHAR" property="payNo" />
+    <result column="pay_amount" jdbcType="DECIMAL" property="payAmount" />
+    <result column="pay_type" jdbcType="TINYINT" property="payType" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="pay_time" jdbcType="TIMESTAMP" property="payTime" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="refund_status" jdbcType="TINYINT" property="refundStatus" />
+    <result column="refund_amount" jdbcType="DECIMAL" property="refundAmount" />
+    <result column="refund_time" jdbcType="TIMESTAMP" property="refundTime" />
+    <result column="refund_reason" jdbcType="VARCHAR" property="refundReason" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, order_id, order_no, pay_no, pay_amount, pay_type, `status`, pay_time, create_time, 
+    update_time, refund_status, refund_amount, refund_time, refund_reason
+  </sql>
+</mapper>

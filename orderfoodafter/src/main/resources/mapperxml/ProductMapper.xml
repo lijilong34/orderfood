@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.ProductMapper">
+  <resultMap id="BaseResultMap" type="org.example.orderfoodafter.entity.Product">
+    <!--@mbg.generated-->
+    <!--@Table product-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="shop_id" jdbcType="BIGINT" property="shopId" />
+    <result column="category_id" jdbcType="BIGINT" property="categoryId" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="image" jdbcType="VARCHAR" property="image" />
+    <result column="price" jdbcType="DECIMAL" property="price" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="stock" jdbcType="INTEGER" property="stock" />
+    <result column="sales" jdbcType="INTEGER" property="sales" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="production_spec" jdbcType="VARCHAR" property="productionSpec" />
+    <result column="is_recommend" jdbcType="TINYINT" property="isRecommend" />
+    <result column="shopname" jdbcType="VARCHAR" property="shopname" />
+    <result column="categoryname" jdbcType="VARCHAR" property="categoryname" />
+  </resultMap>
+  
+
+
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, shop_id, category_id, `name`, image, price, description, stock, sales, 
+    `status`, create_time, update_time,  production_spec, is_recommend
+  </sql>
+
+  <!-- 自定义SQL查询方法 -->
+  <select id="selectMapsBySql" resultType="map">
+    ${sql}
+  </select>
+  
+  <!-- 查询销量前5的商品 -->
+  <select id="selectproducttop5" resultMap="BaseResultMap">
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM product
+    WHERE status = 1
+    ORDER BY sales DESC
+    LIMIT 5
+  </select>
+  
+  <!-- 根据店铺查询所有商品 -->
+  <select id="selectallproductbyshop" resultMap="BaseResultMap">
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM product
+    WHERE 1=1
+    <if test="ew != null and ew.entity != null">
+      <if test="ew.entity.shopId != null">
+        AND shop_id = #{ew.entity.shopId}
+      </if>
+      <if test="ew.entity.categoryId != null">
+        AND category_id = #{ew.entity.categoryId}
+      </if>
+      <if test="ew.entity.status != null">
+        AND status = #{ew.entity.status}
+      </if>
+      <if test="ew.entity.name != null and ew.entity.name != ''">
+        AND name LIKE CONCAT('%', #{ew.entity.name}, '%')
+      </if>
+    </if>
+    ORDER BY create_time DESC
+  </select>
+  
+  <!-- 根据商品ID查询商品信息 -->
+  <select id="selectproductinfobyproductid" resultMap="BaseResultMap">
+    SELECT product.id,product.name,product.shop_id,product.category_id,shop.name as shopname,product_category.name as categoryname,image,price,description,stock,sales,product.status,
+           pd.image_path1 as imagePath1, pd.image_path2 as imagePath2, pd.image_path3 as imagePath3
+    FROM product 
+    inner join shop on product.shop_id=shop.id 
+    inner join product_category on product_category.id=product.category_id
+    left join product_detail pd on pd.product_id=product.id
+    WHERE product.id = #{productid}
+  </select>
+  
+  <!-- 根据分类查询商品 -->
+  <select id="selectProductbycategory" resultType="org.example.orderfoodafter.entity.Product">
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM product
+    <if test="ew != null">
+        ${ew.customSqlSegment}
+      </if>
+    ORDER BY create_time DESC
+  </select>
+  
+  <!-- 查询销量前10的商品 -->
+  <select id="selectproducttop10" resultMap="BaseResultMap">
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM product
+    WHERE status = 1
+    ORDER BY sales DESC
+    LIMIT 30
+  </select>
+</mapper>
