@@ -9,8 +9,12 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
-    * 地址表
-    */
+ * 地址实体类
+ * 用于存储用户的收货地址信息，包括收货人、联系电话、详细地址等
+ * 
+ * @author 李吉隆
+ * @date 2025-11-15
+ */
 @TableName(value = "address")
 public class Address {
     /**

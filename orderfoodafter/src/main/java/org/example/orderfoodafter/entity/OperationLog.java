@@ -8,7 +8,10 @@ import java.time.LocalDateTime;
 
 /**
  * 操作日志实体类
- * 记录系统和用户的操作日志
+ * 用于记录系统和用户的操作日志，包括操作类型、操作内容、操作时间等
+ * 
+ * @author 李吉隆
+ * @date 2026-01-21
  */
 @TableName("operation_log")
 public class OperationLog {
@@ -86,97 +89,218 @@ public class OperationLog {
 
     // Getter and Setter methods
     
+        /**
+     * 获取 getLogId
+     * 
+     * @return getLogId
+     * @author 周子金
+     */
     public Long getLogId() {
         return logId;
     }
+/**
+ * setLogId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setLogId(Long logId) {
         this.logId = logId;
     }
+/**
+ * getUserId方法
+ *
+ * @author 李吉隆
+ */
 
     public Long getUserId() {
         return userId;
     }
+/**
+ * setUserId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUserId(Long userId) {
         this.userId = userId;
     }
+/**
+ * getUsername方法
+ *
+ * @author 李吉隆
+ */
 
     public String getUsername() {
         return username;
     }
+/**
+ * setUsername方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUsername(String username) {
         this.username = username;
     }
+/**
+ * getOperationType方法
+ *
+ * @author 李吉隆
+ */
 
     public String getOperationType() {
         return operationType;
     }
+/**
+ * setOperationType方法
+ *
+ * @author 李吉隆
+ */
 
     public void setOperationType(String operationType) {
         this.operationType = operationType;
     }
+/**
+ * getOperationContent方法
+ *
+ * @author 李吉隆
+ */
 
     public String getOperationContent() {
         return operationContent;
     }
+/**
+ * setOperationContent方法
+ *
+ * @author 李吉隆
+ */
 
     public void setOperationContent(String operationContent) {
         this.operationContent = operationContent;
     }
+/**
+ * getIpAddress方法
+ *
+ * @author 李吉隆
+ */
 
     public String getIpAddress() {
         return ipAddress;
     }
+/**
+ * setIpAddress方法
+ *
+ * @author 李吉隆
+ */
 
     public void setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
     }
+/**
+ * getResult方法
+ *
+ * @author 李吉隆
+ */
 
     public String getResult() {
         return result;
     }
+/**
+ * setResult方法
+ *
+ * @author 李吉隆
+ */
 
     public void setResult(String result) {
         this.result = result;
     }
+/**
+ * getErrorMessage方法
+ *
+ * @author 李吉隆
+ */
 
     public String getErrorMessage() {
         return errorMessage;
     }
+/**
+ * setErrorMessage方法
+ *
+ * @author 李吉隆
+ */
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
+/**
+ * getOperationTime方法
+ *
+ * @author 李吉隆
+ */
 
     public LocalDateTime getOperationTime() {
         return operationTime;
     }
+/**
+ * setOperationTime方法
+ *
+ * @author 李吉隆
+ */
 
     public void setOperationTime(LocalDateTime operationTime) {
         this.operationTime = operationTime;
     }
+/**
+ * getRequestUrl方法
+ *
+ * @author 李吉隆
+ */
 
     public String getRequestUrl() {
         return requestUrl;
     }
+/**
+ * setRequestUrl方法
+ *
+ * @author 李吉隆
+ */
 
     public void setRequestUrl(String requestUrl) {
         this.requestUrl = requestUrl;
     }
+/**
+ * getRequestMethod方法
+ *
+ * @author 李吉隆
+ */
 
     public String getRequestMethod() {
         return requestMethod;
     }
+/**
+ * setRequestMethod方法
+ *
+ * @author 李吉隆
+ */
 
     public void setRequestMethod(String requestMethod) {
         this.requestMethod = requestMethod;
     }
+/**
+ * getResponseTime方法
+ *
+ * @author 李吉隆
+ */
 
     public Long getResponseTime() {
         return responseTime;
     }
+/**
+ * setResponseTime方法
+ *
+ * @author 李吉隆
+ */
 
     public void setResponseTime(Long responseTime) {
         this.responseTime = responseTime;

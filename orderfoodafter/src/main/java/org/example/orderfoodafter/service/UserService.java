@@ -4,6 +4,13 @@ import org.example.orderfoodafter.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 import java.math.BigDecimal;
 
+/**
+ * 用户Service接口
+ * 提供用户相关的业务逻辑处理功能，包括用户信息的增删改查等操作
+ *
+ * @author 赵康乐
+ * @date 2025-11-23
+ */
 public interface UserService extends IService<User> {
 
     /**

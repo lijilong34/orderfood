@@ -9,8 +9,12 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
-    * 供应商表（餐厅管理员库存管理功能）
-    */
+ * 供应商实体类
+ * 用于存储供应商信息，包括供应商名称、联系方式、地址等
+ * 
+ * @author 李吉隆
+ * @date 2026-01-19
+ */
 @TableName(value = "supplier")
 public class Supplier {
     /**

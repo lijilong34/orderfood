@@ -22,7 +22,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 系统设置服务实现类
+ * 系统设置Service实现类
+ * 实现系统设置相关的业务逻辑处理功能
+ * 
+ * @author 李吉隆
+ * @date 2026-02-22
  */
 @Service
 public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper, SystemSettings> implements SystemSettingsService {
@@ -32,6 +36,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
     
     @Autowired
     private EmployeeService employeeService;
+/**
+ * getSystemSettings方法
+ *
+ * @author 李吉隆
+ */
     
     @Override
     public R getSystemSettings() {
@@ -54,6 +63,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             return R.error("获取系统设置失败: " + e.getMessage());
         }
     }
+/**
+ * saveBasicSettings方法
+ *
+ * @author 李吉隆
+ */
     
     @Override
     @Transactional
@@ -83,6 +97,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             return R.error("保存基本设置时发生错误: " + e.getMessage());
         }
     }
+/**
+ * saveSecuritySettings方法
+ *
+ * @author 李吉隆
+ */
     
     @Override
     @Transactional
@@ -111,6 +130,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             return R.error("保存安全设置时发生错误: " + e.getMessage());
         }
     }
+/**
+ * saveBackupSettings方法
+ *
+ * @author 李吉隆
+ */
     
     @Override
     @Transactional
@@ -171,6 +195,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             return R.error("保存备份设置时发生错误: " + e.getMessage());
         }
     }
+/**
+ * changeAdminPassword方法
+ *
+ * @author 李吉隆
+ */
     
     @Override
     @Transactional
@@ -184,6 +213,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             Long employeeId = null;
             if (token != null && !token.isEmpty()) {
                 try {
+                        /**
+     * JwtUtils
+     * 
+     * @author 李吉隆
+     */
                     JwtUtils jwtUtils = new JwtUtils();
                     employeeId = Long.parseLong(jwtUtils.extractUserId(token));
                 } catch (Exception e) {
@@ -206,6 +240,12 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             
             // 更新当前登录员工的密码
             employee.setPassword(newPassword);
+                /**
+     * 设置 setUpdateTime
+     * 
+     * @param setUpdateTime setUpdateTime
+     * @author 李吉隆
+     */
             employee.setUpdateTime(new Date());
             
             // 执行更新操作
@@ -223,6 +263,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             return R.error("修改密码时发生错误: " + e.getMessage());
         }
     }
+/**
+ * uploadSSLCertificate方法
+ *
+ * @author 李吉隆
+ */
     
     @Override
     @Transactional
@@ -249,6 +294,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             return R.error("上传SSL证书时发生错误: " + e.getMessage());
         }
     }
+/**
+ * removeSSLCertificate方法
+ *
+ * @author 李吉隆
+ */
     
     @Override
     @Transactional
@@ -258,6 +308,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             
             // 检查SSL证书文件是否存在
             if (existingSettings.getSslCertificatePath() != null) {
+                    /**
+     * File
+     * 
+     * @author 李吉隆
+     */
                 File certFile = new File(existingSettings.getSslCertificatePath());
                 if (certFile.exists()) {
                     certFile.delete();
@@ -283,6 +338,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
             return R.error("删除SSL证书时发生错误: " + e.getMessage());
         }
     }
+/**
+ * restartSystem方法
+ *
+ * @author 李吉隆
+ */
     
     
     
@@ -322,6 +382,11 @@ public class SystemSettingsServiceImpl extends ServiceImpl<SystemSettingsMapper,
      * 创建默认系统设置
      */
     private SystemSettings createDefaultSettings() {
+            /**
+     * SystemSettings
+     * 
+     * @author 李吉隆
+     */
         SystemSettings settings = new SystemSettings();
         
         // 基本设置

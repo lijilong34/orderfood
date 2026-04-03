@@ -11,8 +11,11 @@ import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 系统状态监控服务
- * 收集系统运行状态数据
+ * 系统状态监控Service
+ * 提供系统状态监控相关的业务逻辑处理功能，包括系统运行状态的监控和统计
+ * 
+ * @author 李吉隆
+ * @date 2026-02-17
  */
 @Service
 public class StatusMonitorService {
@@ -21,9 +24,29 @@ public class StatusMonitorService {
     private final long startTime = System.currentTimeMillis();
     
     // API请求统计
+/**
+ * AtomicLong方法
+ *
+ * @author 李吉隆
+ */
     private final AtomicLong totalRequests = new AtomicLong(0);
+        /**
+     * AtomicLong
+     * 
+     * @author 李吉隆
+     */
     private final AtomicLong successRequests = new AtomicLong(0);
+        /**
+     * AtomicLong
+     * 
+     * @author 李吉隆
+     */
     private final AtomicLong failedRequests = new AtomicLong(0);
+        /**
+     * AtomicLong
+     * 
+     * @author 李吉隆
+     */
     private final AtomicLong totalResponseTime = new AtomicLong(0);
     
     @Value("${spring.datasource.url}")
@@ -36,6 +59,11 @@ public class StatusMonitorService {
      * 获取系统状态
      */
     public SystemStatus getSystemStatus() {
+            /**
+     * SystemStatus
+     * 
+     * @author 李吉隆
+     */
         SystemStatus status = new SystemStatus();
         
         // 计算系统运行时间

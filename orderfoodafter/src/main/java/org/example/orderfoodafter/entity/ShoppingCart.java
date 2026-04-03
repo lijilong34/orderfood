@@ -9,8 +9,12 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
-    * 购物车表
-    */
+ * 购物车实体类
+ * 用于存储用户的购物车信息，记录用户想要购买的商品和数量
+ * 
+ * @author 李吉隆
+ * @date 2025-11-23
+ */
 @TableName(value = "shopping_cart")
 public class ShoppingCart {
     /**
@@ -57,9 +61,20 @@ public class ShoppingCart {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date updateTime;
 
+        /**
+     * 获取 getProduct
+     * 
+     * @return getProduct
+     * @author 李吉隆
+     */
     public Product getProduct() {
         return product;
     }
+/**
+ * setProduct方法
+ *
+ * @author 李吉隆
+ */
 
     public void setProduct(Product product) {
         this.product = product;

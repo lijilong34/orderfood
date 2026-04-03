@@ -10,8 +10,12 @@ import java.util.Date;
 import java.util.List;
 
 /**
-    * 店铺表
-    */
+ * 店铺实体类
+ * 用于存储店铺信息，包括店铺名称、地址、联系方式、状态等
+ * 
+ * @author 李吉隆
+ * @date 2025-12-31
+ */
 @TableName(value = "shop")
 public class Shop {
     /**
@@ -24,17 +28,38 @@ public class Shop {
     @TableField(exist = false)
     private User user;
 
+        /**
+     * 获取 getProduct
+     * 
+     * @return getProduct
+     * @author 李梦瑶
+     */
     public Product getProduct() {
         return product;
     }
+/**
+ * setProduct方法
+ *
+ * @author 李吉隆
+ */
 
     public void setProduct(Product product) {
         this.product = product;
     }
+/**
+ * getUser方法
+ *
+ * @author 李吉隆
+ */
 
     public User getUser() {
         return user;
     }
+/**
+ * setUser方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUser(User user) {
         this.user = user;
@@ -116,6 +141,11 @@ private int order_cnt;
     public List<ProductCategory> getProductCategory() {
         return productCategory;
     }
+/**
+ * setProductCategory方法
+ *
+ * @author 李吉隆
+ */
 
     public void setProductCategory(List<ProductCategory> productCategory) {
         this.productCategory = productCategory;
@@ -136,6 +166,11 @@ private List<Product> topProducts;
 public List<Product> getTopProducts() {
     return topProducts;
 }
+/**
+ * setTopProducts方法
+ *
+ * @author 李吉隆
+ */
 
 public void setTopProducts(List<Product> topProducts) {
     this.topProducts = topProducts;
@@ -356,9 +391,19 @@ public void setTopProducts(List<Product> topProducts) {
     public void setIntroduction(String introduction) {
         this.introduction = introduction;
     }
+/**
+ * getOrder_cnt方法
+ *
+ * @author 李吉隆
+ */
     public int getOrder_cnt() {
         return order_cnt;
     }
+/**
+ * setOrder_cnt方法
+ *
+ * @author 李吉隆
+ */
 
     public void setOrder_cnt(int order_cnt) {
         this.order_cnt = order_cnt;

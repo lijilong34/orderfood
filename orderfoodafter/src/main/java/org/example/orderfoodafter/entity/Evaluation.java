@@ -9,8 +9,12 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
-    * 评价表（顾客评价、餐厅管理员评价管理功能）
-    */
+ * 评价实体类
+ * 用于存储用户的评价信息，包括对商品、服务、环境的评价内容
+ * 
+ * @author 李吉隆
+ * @date 2026-01-06
+ */
 @TableName(value = "evaluation")
 public class Evaluation {
     /**
@@ -25,9 +29,20 @@ public class Evaluation {
     @TableField(value = "user_id")
     private Long userId;
 
+        /**
+     * 获取 getNickname
+     * 
+     * @return getNickname
+     * @author 李梦瑶
+     */
     public String getNickname() {
         return nickname;
     }
+/**
+ * setNickname方法
+ *
+ * @author 李吉隆
+ */
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
@@ -85,10 +100,6 @@ public class Evaluation {
      *//*
     @TableField(value = "reply_content")
     private String replyContent;*/
-
-    /**
-     * 创建时间
-     */
     @TableField(value = "create_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
@@ -107,17 +118,38 @@ public class Evaluation {
     @TableField(exist = false)
     private String productname;
 
+        /**
+     * 获取 getProductname
+     * 
+     * @return getProductname
+     * @author 李梦瑶
+     */
     public String getProductname() {
         return productname;
     }
+/**
+ * setProductname方法
+ *
+ * @author 李吉隆
+ */
 
     public void setProductname(String productname) {
         this.productname = productname;
     }
+/**
+ * getAvatar方法
+ *
+ * @author 李吉隆
+ */
 
     public String getAvatar() {
         return avatar;
     }
+/**
+ * setAvatar方法
+ *
+ * @author 李吉隆
+ */
 
     public void setAvatar(String avatar) {
         this.avatar = avatar;
@@ -132,9 +164,20 @@ public class Evaluation {
     @TableField(exist = false)
     private String shopName;
 
+        /**
+     * 获取 getShopName
+     * 
+     * @return getShopName
+     * @author 李梦瑶
+     */
     public String getShopName() {
         return shopName;
     }
+/**
+ * setShopName方法
+ *
+ * @author 李吉隆
+ */
 
     public void setShopName(String shopName) {
         this.shopName = shopName;
@@ -302,23 +345,13 @@ public class Evaluation {
         this.imageUrls = imageUrls;
     }
 
-   /* *//**
-     * 获取商家回复内容
-     *
-     * @return reply_content - 商家回复内容
-     *//*
-    public String getReplyContent() {
-        return replyContent;
-    }
 
-    *//**
+
+    /**
      * 设置商家回复内容
      *
      * @param replyContent 商家回复内容
-     *//*
-    public void setReplyContent(String replyContent) {
-        this.replyContent = replyContent;
-    }*/
+     **/
 
     /**
      * 获取创建时间

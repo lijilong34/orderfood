@@ -9,8 +9,12 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
-    * 用户收藏表
-    */
+ * 用户收藏实体类
+ * 用于存储用户的收藏信息，记录用户收藏的商品
+ * 
+ * @author 李吉隆
+ * @date 2025-12-21
+ */
 @TableName(value = "user_favorites")
 public class UserFavorites {
     /**
@@ -49,9 +53,20 @@ public class UserFavorites {
     @TableField(exist = false)
     private String shopname;
 
+        /**
+     * 获取 getShopname
+     * 
+     * @return getShopname
+     * @author 李吉隆
+     */
     public String getShopname() {
         return shopname;
     }
+/**
+ * setShopname方法
+ *
+ * @author 李吉隆
+ */
 
     public void setShopname(String shopname) {
         this.shopname = shopname;
@@ -59,10 +74,20 @@ public class UserFavorites {
 
     @TableField(exist = false)
     private Product product;
+/**
+ * getProduct方法
+ *
+ * @author 李吉隆
+ */
 
     public Product getProduct() {
         return product;
     }
+/**
+ * setProduct方法
+ *
+ * @author 李吉隆
+ */
 
     public void setProduct(Product product) {
         this.product = product;

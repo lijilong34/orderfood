@@ -4,7 +4,11 @@ import org.example.orderfoodafter.common.R;
 import org.example.orderfoodafter.entity.Backup;
 
 /**
- * 备份服务接口
+ * 备份Service接口
+ * 提供备份相关的业务逻辑处理功能，包括备份信息的增删改查等操作
+ *
+ * @author 周子金
+ * @date 2026-02-25
  */
 public interface BackupService {
     

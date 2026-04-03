@@ -4,6 +4,13 @@ import org.example.orderfoodafter.entity.Message;
 import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 
+/**
+ * 消息Service接口
+ * 提供消息相关的业务逻辑处理功能，包括消息信息的增删改查等操作
+ *
+ * @author 李梦瑶
+ * @date 2025-12-15
+ */
 public interface MessageService extends IService<Message> {
 
     /**

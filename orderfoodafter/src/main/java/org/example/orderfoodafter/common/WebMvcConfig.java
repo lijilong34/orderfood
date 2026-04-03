@@ -3,6 +3,13 @@ package org.example.orderfoodafter.common;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+/**
+ * Web MVC配置类
+ * 配置Web资源处理器，实现本地文件路径的URL映射访问
+ * 
+ * @author 李吉隆
+ * @date 2025-11-24
+ */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
     // 本地图片存储根路径（根据你的实际路径修改）
@@ -10,6 +17,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     // URL映射路径（对应前端访问的 /imeageserver/ 路径）
     private static final String URL_MAPPING = "/imeageserver/**";
+/**
+ * addResourceHandlers方法
+ *
+ * @author 李吉隆
+ */
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

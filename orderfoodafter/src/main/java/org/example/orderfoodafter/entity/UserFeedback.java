@@ -9,7 +9,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
- * 用户反馈表
+ * 用户反馈实体类
+ * 用于存储用户的反馈信息，包括反馈内容、类型、处理状态等
+ * 
+ * @author 李吉隆
+ * @date 2025-12-06
  */
 @TableName(value = "user_feedback")
 public class UserFeedback {
@@ -77,17 +81,38 @@ public class UserFeedback {
     @TableField(exist = false)
     private String userphone;
 
+        /**
+     * 获取 getUsername
+     * 
+     * @return getUsername
+     * @author 李梦瑶
+     */
     public String getUsername() {
         return username;
     }
+/**
+ * setUsername方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUsername(String username) {
         this.username = username;
     }
+/**
+ * getUserphone方法
+ *
+ * @author 李吉隆
+ */
 
     public String getUserphone() {
         return userphone;
     }
+/**
+ * setUserphone方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUserphone(String userphone) {
         this.userphone = userphone;

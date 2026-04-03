@@ -8,7 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 财务报表Service
+ * 财务报表Service接口
+ * 提供财务报表相关的业务逻辑处理功能，包括财务报表信息的增删改查等操作
+ *
+ * @author 熊杨博
+ * @date 2026-01-15
  */
 public interface FinancialReportService extends IService<FinancialReport> {
 

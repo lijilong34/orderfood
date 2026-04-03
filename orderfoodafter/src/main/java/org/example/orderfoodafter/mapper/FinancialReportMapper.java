@@ -10,7 +10,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 财务报表Mapper
+ * 财务报表Mapper接口
+ * 用于对财务报表表进行数据访问操作，提供财务报表信息的增删改查功能
+ *
+ * @author 熊杨博
+ * @date 2026-01-15
  */
 @Mapper
 public interface FinancialReportMapper extends BaseMapper<FinancialReport> {

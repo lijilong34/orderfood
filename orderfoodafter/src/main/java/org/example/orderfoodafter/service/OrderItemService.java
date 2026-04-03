@@ -8,6 +8,13 @@ import org.example.orderfoodafter.entity.Shop;
 
 import java.util.List;
 
+/**
+ * 订单项Service接口
+ * 提供订单项相关的业务逻辑处理功能，包括订单项信息的增删改查等操作
+ *
+ * @author 李梦瑶
+ * @date 2025-11-28
+ */
 public interface OrderItemService extends IService<OrderItem>{
 
 

@@ -12,11 +12,23 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 采购Service实现类
+ * 实现采购相关的业务逻辑处理功能
+ * 
+ * @author 陈逸磊
+ * @date 2026-01-14
+ */
 @Service
 public class PurchaseServiceImpl extends ServiceImpl<PurchaseMapper, Purchase> implements PurchaseService {
 
     @Autowired
     private PurchaseMapper purchaseMapper;
+/**
+ * getShopAdminPurchaseList方法
+ *
+ * @author 陈逸磊
+ */
 
     @Override
     public PageInfo<Purchase> getShopAdminPurchaseList(Map<String, Object> params) {

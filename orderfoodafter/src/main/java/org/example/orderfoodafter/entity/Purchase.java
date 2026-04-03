@@ -10,7 +10,11 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 采购记录表
+ * 采购记录实体类
+ * 用于存储采购记录信息，包括采购商品、数量、价格、供应商等
+ * 
+ * @author 李吉隆
+ * @date 2026-01-11
  */
 @TableName(value = "purchase")
 public class Purchase {
@@ -96,113 +100,254 @@ public class Purchase {
     private String supplierName;
 
     // getter和setter方法
+        /**
+     * 获取 getId
+     * 
+     * @return getId
+     * @author 陈逸磊
+     */
     public Long getId() {
         return id;
     }
+/**
+ * setId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setId(Long id) {
         this.id = id;
     }
+/**
+ * getShopId方法
+ *
+ * @author 李吉隆
+ */
 
     public Long getShopId() {
         return shopId;
     }
+/**
+ * setShopId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setShopId(Long shopId) {
         this.shopId = shopId;
     }
+/**
+ * getSupplierId方法
+ *
+ * @author 李吉隆
+ */
 
     public Long getSupplierId() {
         return supplierId;
     }
+/**
+ * setSupplierId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setSupplierId(Long supplierId) {
         this.supplierId = supplierId;
     }
+/**
+ * getProductId方法
+ *
+ * @author 李吉隆
+ */
 
     public Long getProductId() {
         return productId;
     }
+/**
+ * setProductId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setProductId(Long productId) {
         this.productId = productId;
     }
+/**
+ * getQuantity方法
+ *
+ * @author 李吉隆
+ */
 
     public Integer getQuantity() {
         return quantity;
     }
+/**
+ * setQuantity方法
+ *
+ * @author 李吉隆
+ */
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
+/**
+ * getUnitPrice方法
+ *
+ * @author 李吉隆
+ */
 
     public BigDecimal getUnitPrice() {
         return unitPrice;
     }
+/**
+ * setUnitPrice方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUnitPrice(BigDecimal unitPrice) {
         this.unitPrice = unitPrice;
     }
+/**
+ * getTotalAmount方法
+ *
+ * @author 李吉隆
+ */
 
     public BigDecimal getTotalAmount() {
         return totalAmount;
     }
+/**
+ * setTotalAmount方法
+ *
+ * @author 李吉隆
+ */
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
+/**
+ * getPurchaseDate方法
+ *
+ * @author 李吉隆
+ */
 
     public Date getPurchaseDate() {
         return purchaseDate;
     }
+/**
+ * setPurchaseDate方法
+ *
+ * @author 李吉隆
+ */
 
     public void setPurchaseDate(Date purchaseDate) {
         this.purchaseDate = purchaseDate;
     }
+/**
+ * getStatus方法
+ *
+ * @author 李吉隆
+ */
 
     public Byte getStatus() {
         return status;
     }
+/**
+ * setStatus方法
+ *
+ * @author 李吉隆
+ */
 
     public void setStatus(Byte status) {
         this.status = status;
     }
+/**
+ * getRemark方法
+ *
+ * @author 李吉隆
+ */
 
     public String getRemark() {
         return remark;
     }
+/**
+ * setRemark方法
+ *
+ * @author 李吉隆
+ */
 
     public void setRemark(String remark) {
         this.remark = remark;
     }
+/**
+ * getCreateTime方法
+ *
+ * @author 李吉隆
+ */
 
     public Date getCreateTime() {
         return createTime;
     }
+/**
+ * setCreateTime方法
+ *
+ * @author 李吉隆
+ */
 
     public void setCreateTime(Date createTime) {
         this.createTime = createTime;
     }
+/**
+ * getUpdateTime方法
+ *
+ * @author 李吉隆
+ */
 
     public Date getUpdateTime() {
         return updateTime;
     }
+/**
+ * setUpdateTime方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
     }
+/**
+ * getProductName方法
+ *
+ * @author 李吉隆
+ */
 
     public String getProductName() {
         return productName;
     }
+/**
+ * setProductName方法
+ *
+ * @author 李吉隆
+ */
 
     public void setProductName(String productName) {
         this.productName = productName;
     }
+/**
+ * getSupplierName方法
+ *
+ * @author 李吉隆
+ */
 
     public String getSupplierName() {
         return supplierName;
     }
+/**
+ * setSupplierName方法
+ *
+ * @author 李吉隆
+ */
 
     public void setSupplierName(String supplierName) {
         this.supplierName = supplierName;

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.UserFavoritesMapper">
+  <resultMap id="BaseResultMap" type="org.example.orderfoodafter.entity.UserFavorites">
+    <!--@mbg.generated-->
+    <!--@Table user_favorites-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="user_id" jdbcType="BIGINT" property="userId" />
+    <result column="product_id" jdbcType="BIGINT" property="productId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, user_id, product_id, create_time, update_time
+  </sql>
+
+  <resultMap id="selectFavoritesByUserIdMap" type="org.example.orderfoodafter.entity.UserFavorites">
+    <!--@mbg.generated-->
+    <!--@Table user_favorites-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="product_id" jdbcType="BIGINT" property="productId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+     <result column="shopname" property="shopname"/>
+    <association property="product" javaType="org.example.orderfoodafter.entity.Product">
+      <result column="name" property="name"/>
+      <result column="image" property="image"/>
+      <result column="price" property="price"/>
+      <result column="stock" property="stock"/>
+      <result column="status" property="status"/>
+    </association>
+  </resultMap>
+
+    <select id="selectFavoritesByUserId" resultMap="selectFavoritesByUserIdMap" parameterType="java.lang.Long">
+      SELECT user_favorites.id,user_favorites.product_id,shop.`name` as shopname,product.`name`,product.image,product.price,product.stock,product.`status`,user_favorites.create_time 
+      FROM user_favorites 
+      INNER JOIN product ON user_favorites.product_id=product.id 
+      INNER JOIN shop ON product.shop_id=shop.id 
+      WHERE user_favorites.user_id = #{userId}
+    </select>
+</mapper>

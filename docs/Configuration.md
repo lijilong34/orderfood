@@ -10,3 +10,29 @@
  merchant_private_key=""
  alipay_public_key=""
 ```
+3.智普图片生成api
+路径:
+<br>\orderfoodafter\src\main\java\org\example\orderfoodafter\service\impl\AiServiceImpl.java<br>
+去[智普开放平台](https://open.bigmodel.cn/)申请api
+```java
+    private static final ZhipuAiClient zhipuClient = ZhipuAiClient.builder()
+            .apiKey("")
+            .build();
+    private static final ZhipuAiClient imageClient = ZhipuAiClient.builder()
+            .apiKey("")
+            .build();
+```
+双引号填入api key<br>
+4.总ai,填入以下信息
+```properties
+#api密钥
+langchain4j.open-ai.chat-model.api-key=
+#模型名称 
+langchain4j.open-ai.chat-model.model-name=
+#请求地址
+langchain4j.open-ai.chat-model.base-url=
+langchain4j.open-ai.chat-model.log-requests=true
+langchain4j.open-ai.chat-model.log-responses=true
+langchain4j.open-ai.chat-model.temperature=0.1
+langchain4j.open-ai.chat-model.max-tokens=2000
+```

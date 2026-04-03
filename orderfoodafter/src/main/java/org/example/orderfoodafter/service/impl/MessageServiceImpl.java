@@ -9,8 +9,20 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * 消息Service实现类
+ * 实现消息相关的业务逻辑处理功能
+ * 
+ * @author 李吉隆
+ * @date 2025-12-19
+ */
 @Service
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> implements MessageService {
+/**
+ * getMessagesByUserId方法
+ *
+ * @author 李梦瑶
+ */
 
     @Override
     public List<Message> getMessagesByUserId(Long userId) {
@@ -19,6 +31,11 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 .orderByDesc("create_time");
         return this.list(queryWrapper);
     }
+/**
+ * deleteMessage方法
+ *
+ * @author 李梦瑶
+ */
 
     @Override
     public boolean deleteMessage(Long messageId) {

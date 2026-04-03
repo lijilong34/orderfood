@@ -17,13 +17,25 @@ import java.util.Map;
 
 /**
  * 通用工具类
- * @author Administrator
- * @date 2025/11/20 14:36
+ * 提供常用的工具方法，包括查询条件构建等功能
+ * 
+ * @author 李吉隆
+ * @date 2025-11-16
  */
 @Component
     public class CommontUtil {
+/**
+ * getWhere方法
+ *
+ * @author 李吉隆
+ */
     public QueryWrapper getWhere(List where) throws IOException {
         QueryWrapper<Object> objectQueryWrapper = new QueryWrapper<>();//条件查询对象
+            /**
+     * ObjectMapper
+     * 
+     * @author 李吉隆
+     */
         ObjectMapper objectMapper = new ObjectMapper();
         List<WhereEntity> whereEntityList = objectMapper.readValue(objectMapper.writeValueAsString(where), new TypeReference<List<WhereEntity>>() {
         });

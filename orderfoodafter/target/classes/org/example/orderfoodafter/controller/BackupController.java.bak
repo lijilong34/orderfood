@@ -1,0 +1,486 @@
+package org.example.orderfoodafter.controller;
+
+
+import org.example.orderfoodafter.common.R;
+import org.example.orderfoodafter.entity.Backup;
+import org.example.orderfoodafter.mapper.BackupMapper;
+import org.example.orderfoodafter.service.BackupService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * 数据库备份控制器
+ * 处理数据库备份、恢复、导入、导出等操作
+ */
+@RestController
+@RequestMapping("/backup")
+public class BackupController {
+
+    @Autowired
+    private BackupService backupService;
+    
+    @Autowired
+    private BackupMapper backupMapper;
+
+    // 从配置文件读取数据库连接信息
+    @Value("${spring.datasource.url}")
+    private String dbUrl;
+    
+    @Value("${spring.datasource.username}")
+    private String dbUsername;
+    
+    @Value("${spring.datasource.password}")
+    private String dbPassword;
+    
+    // 默认备份目录
+    @Value("${backup.default-path:D:/backups}")
+    private String defaultBackupPath;
+    
+    // MySQL路径配置
+    @Value("${mysql.dump-path:C:\\Program Files\\MySQL\\MySQL Server 5.7\\bin\\mysqldump.exe}")
+    private String mysqlDumpPath;
+    
+    @Value("${mysql.exe-path:C:\\Program Files\\MySQL\\MySQL Server 5.7\\bin\\mysql.exe}")
+    private String mysqlExePath;
+    
+    // 备份任务进度映射
+    private static final Map<String, Integer> backupProgressMap = new ConcurrentHashMap<>();
+
+    /**
+     * 获取备份列表
+     */
+    @GetMapping("/list")
+    public R getBackupList(@RequestParam(defaultValue = "1") Integer currentPage,
+                          @RequestParam(defaultValue = "10") Integer pageSize) {
+        try {
+            return backupService.getBackupList(currentPage, pageSize);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.error("获取备份列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 删除备份
+     */
+    @DeleteMapping("/delete/{backupId}")
+    public R deleteBackup(@PathVariable Long backupId) {
+        try {
+            // 获取备份记录
+            Backup backup = backupMapper.selectById(backupId);
+            if (backup == null) {
+                return R.error("备份记录不存在");
+            }
+            
+            // 删除物理文件（可选）
+            File backupFile = new File(backup.getBackupFilePath());
+            if (backupFile.exists()) {
+                backupFile.delete();
+            }
+            
+            // 删除数据库记录
+            int result = backupMapper.deleteById(backupId);
+            
+            if (result > 0) {
+                R response = R.ok();
+                response.setMessage("备份删除成功");
+                return response;
+            } else {
+                return R.error("备份删除失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.error("删除过程中发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 恢复备份
+     */
+    @PostMapping("/restore/{backupId}")
+    public R restoreBackup(@PathVariable Long backupId) {
+        try {
+            System.out.println("=== 恢复备份调试信息 ===");
+            System.out.println("备份ID: " + backupId);
+            
+            // 获取备份记录
+            Backup backup = backupMapper.selectById(backupId);
+            if (backup == null) {
+                return R.error("备份记录不存在");
+            }
+            
+            System.out.println("备份记录: " + backup);
+            System.out.println("备份文件路径: " + backup.getBackupFilePath());
+            
+            // 检查备份文件是否存在
+            File backupFile = new File(backup.getBackupFilePath());
+            if (!backupFile.exists()) {
+                return R.error("备份文件不存在: " + backup.getBackupFilePath());
+            }
+            
+            // 提取数据库名称
+            String dbName = extractDbName(dbUrl);
+            
+            // 构建mysql恢复命令
+            String mysqlExePath = getMysqlExePath();
+            String[] command = buildMysqlCommand(mysqlExePath, backupFile.getAbsolutePath(), dbUsername, dbPassword, dbName);
+            
+            System.out.println("恢复命令: " + String.join(" ", command));
+            
+            // 执行恢复命令
+            Process process = Runtime.getRuntime().exec(command);
+            
+            // 读取错误输出
+            StringBuilder errorOutput = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    errorOutput.append(line).append("\n");
+                }
+            }
+            
+            int exitCode = process.waitFor();
+            
+            if (exitCode == 0) {
+                R response = R.ok();
+                response.setMessage("数据库恢复成功");
+                return response;
+            } else {
+                return R.error("数据库恢复失败: " + errorOutput.toString());
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.error("恢复过程中发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 下载备份文件
+     */
+    @GetMapping("/export/{backupId}")
+    public ResponseEntity<Resource> exportBackup(@PathVariable Long backupId) {
+        try {
+            System.out.println("=== 下载备份文件调试信息 ===");
+            System.out.println("备份ID: " + backupId);
+            
+            // 获取备份记录
+            Backup backup = backupMapper.selectById(backupId);
+            if (backup == null) {
+                System.out.println("错误：备份记录不存在");
+                return ResponseEntity.notFound().build();
+            }
+            
+            System.out.println("备份记录: " + backup);
+            System.out.println("备份文件路径: " + backup.getBackupFilePath());
+            
+            // 检查备份文件是否存在
+            File backupFile = new File(backup.getBackupFilePath());
+            System.out.println("文件是否存在: " + backupFile.exists());
+            System.out.println("文件绝对路径: " + backupFile.getAbsolutePath());
+            System.out.println("文件大小: " + (backupFile.exists() ? backupFile.length() + " bytes" : "N/A"));
+            
+            if (!backupFile.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // 创建资源
+            Resource resource = new UrlResource(backupFile.toURI());
+            
+            if (resource.exists() || resource.isReadable()) {
+                // 设置响应头
+                String contentType = "application/octet-stream";
+                String headerValue = "attachment; filename=\"" + backup.getBackupFileName() + "\"";
+                
+                System.out.println("准备返回文件，Content-Type: " + contentType);
+                System.out.println("Content-Disposition: " + headerValue);
+                
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, headerValue)
+                        .body(resource);
+            } else {
+                System.out.println("错误：文件不可读");
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            System.err.println("下载备份文件时发生错误:");
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 执行MySQL备份指令并返回备份文件位置
+     */
+    @PostMapping("/execute-mysql-backup")
+    public R executeMysqlBackup(@RequestBody(required = false) Map<String, String> params) {
+        try {
+            // 获取备份路径，如果未指定则使用默认路径
+            String backupPath = params != null ? params.getOrDefault("backupPath", defaultBackupPath) : defaultBackupPath;
+            
+            // 创建备份目录
+            File backupDirectory = new File(backupPath);
+            if (!backupDirectory.exists()) {
+                boolean created = backupDirectory.mkdirs();
+                if (!created) {
+                    return R.error("无法创建备份目录，请检查权限");
+                }
+            }
+            // 生成备份文件名（使用时间戳）
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String backupFileName = "orderfoot_backup_" + timestamp + ".sql";
+            String backupFilePath = backupPath + File.separator + backupFileName;
+
+            // 提取数据库名称
+            String dbName = extractDbName(dbUrl);
+
+            // 构建mysqldump命令
+            String mysqlDumpPath = getMysqlDumpPath();
+            
+            System.out.println("=== 备份调试信息 ===");
+            System.out.println("MySQL Dump路径: " + mysqlDumpPath);
+            
+            // 检查MySQL dump文件是否存在
+            File mysqldumpFile = new File(mysqlDumpPath);
+            if (!mysqldumpFile.exists()) {
+                return R.error("MySQL mysqldump工具不存在: " + mysqlDumpPath + 
+                             "。请检查MySQL是否正确安装，或修改配置文件中的mysql.dump-path路径。");
+            }
+            
+            System.out.println("备份文件路径: " + backupFilePath);
+            System.out.println("数据库名: " + dbName);
+
+            // 使用数组方式构建命令，避免路径空格问题
+            String[] command = {
+                mysqlDumpPath,
+                "-u" + dbUsername,
+                "-p" + dbPassword,
+                "--databases", dbName,
+                "--result-file=" + backupFilePath
+            };
+
+            System.out.println("命令数组: " + java.util.Arrays.toString(command));
+
+            // 执行备份命令
+            Process process = Runtime.getRuntime().exec(command);
+
+            // 读取命令输出
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+            }
+
+            // 等待进程完成
+            int exitCode = process.waitFor();
+
+            if (exitCode == 0) {
+                // 备份成功
+                File backupFile = new File(backupFilePath);
+                if (backupFile.exists() && backupFile.length() > 0) {
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("backupFilePath", backupFilePath);
+                    data.put("backupFileName", backupFileName);
+                    data.put("backupSize", backupFile.length());
+                    data.put("backupTime", LocalDateTime.now().toString());
+                    
+                    // 将备份记录保存到数据库
+                    saveBackupRecordToDatabase(backupFileName, backupFilePath, backupFile.length());
+                    
+                    R result = R.ok();
+result.setMessage("MySQL备份成功");
+result.addData("backupInfo", data);
+return result;
+                } else {
+                    return R.error("备份文件生成失败或为空");
+                }
+            } else {
+                // 备份失败
+                return R.error("MySQL备份失败: " + output.toString());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.error("执行MySQL备份时发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 导入备份文件
+     * @param file 上传的备份文件
+     * @param importPath 指定的导入路径（可选）
+     * @return 导入结果
+     */
+    @PostMapping("/import")
+    public R importBackup(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "importPath", required = false) String importPath) {
+        
+        try {
+            // 验证文件
+            if (file.isEmpty()) {
+                return R.error("请选择要导入的备份文件");
+            }
+            
+            // 检查文件类型
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || !fileName.endsWith(".sql")) {
+                return R.error("只支持SQL文件格式");
+            }
+            
+            // 确定临时文件保存路径
+            String tempDirPath = importPath != null ? importPath : defaultBackupPath;
+            
+            // 确保临时目录存在
+            File tempDir = new File(tempDirPath);
+            if (!tempDir.exists()) {
+                boolean created = tempDir.mkdirs();
+                if (!created) {
+                    return R.error("无法创建临时目录，请检查权限");
+                }
+            }
+            
+            // 保存上传的文件到临时位置
+            String tempFilePath = tempDirPath + File.separator + "temp_" + UUID.randomUUID() + ".sql";
+            Path tempPath = Paths.get(tempFilePath);
+            Files.write(tempPath, file.getBytes());
+            
+            try {
+                // 提取数据库名称
+                String dbName = extractDbName(dbUrl);
+                
+                // 构建mysql导入命令
+                String mysqlExePath = getMysqlExePath();
+                String[] command = buildMysqlCommand(mysqlExePath, tempFilePath, dbUsername, dbPassword, dbName);
+                
+                // 执行导入命令
+                ProcessBuilder processBuilder = new ProcessBuilder(command);
+                processBuilder.redirectErrorStream(true);
+                Process process = processBuilder.start();
+                
+                // 读取错误输出
+                StringBuilder errorOutput = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        errorOutput.append(line).append("\n");
+                    }
+                }
+                
+                int exitCode = process.waitFor();
+                
+                if (exitCode == 0) {
+                    R result = R.ok();
+result.setMessage("数据库备份导入成功");
+return result;
+                } else {
+                    return R.error("数据库导入失败: " + errorOutput.toString());
+                }
+            } finally {
+                // 清理临时文件
+                Files.deleteIfExists(tempPath);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.error("导入过程中发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 从数据库URL提取数据库名称
+     */
+    private String extractDbName(String url) {
+        // 处理jdbc:mysql://localhost:3306/dbname 格式
+        if (url.contains("?")) {
+            url = url.substring(0, url.indexOf("?"));
+        }
+        return url.substring(url.lastIndexOf("/") + 1);
+    }
+
+    /**
+     * 保存备份记录到数据库
+     */
+    private void saveBackupRecordToDatabase(String fileName, String filePath, long fileSize) {
+        try {
+            Backup backup = new Backup();
+            backup.setBackupFileName(fileName);
+            backup.setBackupFilePath(filePath);
+            backup.setBackupSize(fileSize);
+            backup.setBackupTime(LocalDateTime.now());
+            backup.setBackupType("manual");
+            backup.setBackupStatus("success");
+            backup.setDescription("手动数据库备份");
+            backup.setCreateTime(LocalDateTime.now());
+            backup.setUpdateTime(LocalDateTime.now());
+            
+            // 调用服务保存
+            backupService.saveBackupRecord(backup);
+            System.out.println("备份记录已保存到数据库: " + fileName);
+        } catch (Exception e) {
+            System.err.println("保存备份记录到数据库失败: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 获取MySQL dump命令路径
+     */
+    private String getMysqlDumpPath() {
+        return mysqlDumpPath;
+    }
+    
+    /**
+     * 获取MySQL执行程序路径
+     */
+    private String getMysqlExePath() {
+        return mysqlExePath;
+    }
+    
+    /**
+     * 构建MySQL命令（根据操作系统使用不同的命令格式）
+     */
+    private String[] buildMysqlCommand(String mysqlExePath, String sqlFilePath, String dbUsername, String dbPassword, String dbName) {
+        String os = System.getProperty("os.name").toLowerCase();
+        
+        if (os.contains("win")) {
+            // Windows系统使用cmd.exe执行管道命令
+            return new String[] {
+                "cmd", "/c",
+                "type", sqlFilePath, "|", mysqlExePath,
+                "-u" + dbUsername,
+                "-p" + dbPassword,
+                dbName
+            };
+        } else {
+            // Linux/Unix系统使用bash执行管道命令
+            return new String[] {
+                "bash", "-c",
+                "cat \"" + sqlFilePath + "\" | \"" + mysqlExePath + 
+                "\" -u" + dbUsername + " -p" + dbPassword + " " + dbName
+            };
+        }
+    }
+}

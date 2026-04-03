@@ -9,6 +9,10 @@ import java.time.LocalDateTime;
 
 /**
  * 系统设置实体类
+ * 用于存储系统配置信息，包括基本设置、安全设置、备份设置等
+ * 
+ * @author 李吉隆
+ * @date 2026-02-19
  */
 @Data
 @TableName("system_settings")

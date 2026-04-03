@@ -8,6 +8,13 @@ import org.example.orderfoodafter.entity.Evaluation;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 评价Mapper接口
+ * 用于对评价表进行数据访问操作，提供评价信息的增删改查功能
+ *
+ * @author 熊杨博
+ * @date 2026-01-05
+ */
 public interface EvaluationMapper extends BaseMapper<Evaluation> {
 
     List<Evaluation> selectevaluationbyProductId(@Param("ProductId") long productId);

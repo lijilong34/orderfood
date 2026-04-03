@@ -10,8 +10,12 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
-    * 支付记录表
-    */
+ * 支付记录实体类
+ * 用于存储支付记录信息，包括支付方式、金额、时间等
+ * 
+ * @author 李吉隆
+ * @date 2025-12-02
+ */
 @TableName(value = "payment_record")
 public class PaymentRecord {
     /**

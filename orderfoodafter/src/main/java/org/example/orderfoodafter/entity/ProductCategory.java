@@ -9,8 +9,12 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
-    * 商品分类表
-    */
+ * 商品分类实体类
+ * 用于存储商品分类信息，实现商品的分类管理
+ * 
+ * @author 李吉隆
+ * @date 2026-01-04
+ */
 @TableName(value = "product_category")
 public class ProductCategory {
     /**
@@ -159,11 +163,21 @@ public class ProductCategory {
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
     }
+/**
+ * getShopname方法
+ *
+ * @author 李吉隆
+ */
 
 
     public String getShopname() {
         return shopname;
     }
+/**
+ * setShopname方法
+ *
+ * @author 李吉隆
+ */
 
     public void setShopname(String shopname) {
         this.shopname = shopname;

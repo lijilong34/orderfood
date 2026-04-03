@@ -12,8 +12,20 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 优惠券Service实现类
+ * 实现优惠券相关的业务逻辑处理功能
+ * 
+ * @author 李吉隆
+ * @date 2025-11-29
+ */
 @Service
 public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implements CouponService {
+/**
+ * hasUserClaimedCoupon方法
+ *
+ * @author 李梦瑶
+ */
 
     @Override
     public boolean hasUserClaimedCoupon(Long userId, Long couponId) {
@@ -45,6 +57,11 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 .eq("title", title);
         return this.count(queryWrapper) > 0;
     }
+/**
+ * getUserCoupons方法
+ *
+ * @author 李梦瑶
+ */
 
     @Override
     public List<Coupon> getUserCoupons(Long userId) {
@@ -53,6 +70,11 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 .orderByDesc("create_time");
         return this.list(queryWrapper);
     }
+/**
+ * getAvailableCoupons方法
+ *
+ * @author 李梦瑶
+ */
 
     @Override
     public List<Coupon> getAvailableCoupons(Long userId, BigDecimal totalAmount, Long shopId) {
@@ -64,11 +86,21 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 .orderByDesc("discount_value");
         return this.list(queryWrapper);
     }
+/**
+ * claimCoupon方法
+ *
+ * @author 李梦瑶
+ */
 
     @Override
     public boolean claimCoupon(Long userId, Long couponId) {
         try {
             // 根据couponId匹配前端硬编码的优惠券模板
+                /**
+     * Coupon
+     * 
+     * @author 李吉隆
+     */
             Coupon userCoupon = new Coupon();
             userCoupon.setUserId(userId);
             userCoupon.setShopId(0L); // 全店通用
@@ -122,6 +154,11 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             return false;
         }
     }
+/**
+ * useCoupon方法
+ *
+ * @author 李梦瑶
+ */
 
     @Override
     public boolean useCoupon(Long userId, Long couponId) {
@@ -145,6 +182,11 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             return false;
         }
     }
+/**
+ * getTodayClaimedCoupons方法
+ *
+ * @author 李梦瑶
+ */
 
     @Override
     public List<Coupon> getTodayClaimedCoupons(Long userId) {

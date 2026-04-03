@@ -5,8 +5,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * 应用程序日志工具类
- * 提供统一的日志记录接口
+ * 日志工具类
+ * 提供统一的日志记录接口，支持多种日志级别和特殊日志记录功能
+ * 
+ * @author 李吉隆
+ * @date 2025-11-15
  */
 @Component
 public class AppLogger {

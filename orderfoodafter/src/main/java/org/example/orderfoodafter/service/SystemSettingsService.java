@@ -7,7 +7,11 @@ import org.example.orderfoodafter.entity.SystemSettings;
 import java.util.Map;
 
 /**
- * 系统设置服务接口
+ * 系统设置Service接口
+ * 提供系统设置相关的业务逻辑处理功能，包括系统设置信息的增删改查等操作
+ * 
+ * @author 李吉隆
+ * @date 2026-02-21
  */
 public interface SystemSettingsService extends IService<SystemSettings> {
     
@@ -45,8 +49,6 @@ public interface SystemSettingsService extends IService<SystemSettings> {
      * 删除SSL证书
      */
     R removeSSLCertificate();
-    
-    
     
     /**
      * 重启系统

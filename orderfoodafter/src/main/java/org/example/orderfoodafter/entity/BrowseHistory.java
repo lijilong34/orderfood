@@ -7,7 +7,11 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
 
 /**
- * 用户历史记录表
+ * 浏览历史实体类
+ * 用于存储用户的浏览历史记录，记录用户浏览过的商品信息
+ * 
+ * @author 李吉隆
+ * @date 2025-11-25
  */
 @TableName(value = "browse_history")
 public class BrowseHistory {
@@ -29,9 +33,20 @@ public class BrowseHistory {
     @TableField(value = "product_id")
     private Long productId;
 
+        /**
+     * 获取 getShopname
+     * 
+     * @return getShopname
+     * @author 李梦瑶
+     */
     public String getShopname() {
         return shopname;
     }
+/**
+ * setShopname方法
+ *
+ * @author 李吉隆
+ */
 
     public void setShopname(String shopname) {
         this.shopname = shopname;
@@ -53,9 +68,20 @@ public class BrowseHistory {
     @TableField(exist = false)
     private Product product;
 
+        /**
+     * 获取 getProduct
+     * 
+     * @return getProduct
+     * @author 李梦瑶
+     */
     public Product getProduct() {
         return product;
     }
+/**
+ * setProduct方法
+ *
+ * @author 李吉隆
+ */
 
     public void setProduct(Product product) {
         this.product = product;

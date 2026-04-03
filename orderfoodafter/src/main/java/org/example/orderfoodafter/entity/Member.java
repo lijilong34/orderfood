@@ -7,8 +7,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
 
 /**
-    * 会员信息表（餐厅管理员会员管理、顾客会员权益功能）
-    */
+ * 会员实体类
+ * 用于存储会员信息，包括会员等级、积分、权益等会员相关数据
+ * 
+ * @author 李吉隆
+ * @date 2025-12-12
+ */
 @TableName(value = "`member`")
 public class Member {
     /**

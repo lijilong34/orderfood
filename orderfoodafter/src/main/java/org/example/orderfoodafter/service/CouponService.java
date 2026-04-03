@@ -5,6 +5,13 @@ import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
 
+/**
+ * 优惠券Service接口
+ * 提供优惠券相关的业务逻辑处理功能，包括优惠券信息的增删改查等操作
+ *
+ * @author 李梦瑶
+ * @date 2025-11-25
+ */
 public interface CouponService extends IService<Coupon> {
 
     /**

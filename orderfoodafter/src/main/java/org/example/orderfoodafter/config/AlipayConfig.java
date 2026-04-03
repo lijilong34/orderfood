@@ -3,22 +3,19 @@ package org.example.orderfoodafter.config;
 import java.io.FileWriter;
 import java.io.IOException;
 
-/* *
- *类名：AlipayConfig
- *功能：基础配置类
- *详细：设置帐户有关信息及返回路径
- *修改日期：2017-04-05
- *说明：
- *以下代码只是为了方便商户测试而提供的样例代码，商户可以根据自己网站的需要，按照技术文档编写,并非一定要使用该代码。
- *该代码仅供学习和研究支付宝接口使用，只是提供一个参考。
+/**
+ * 支付宝配置类
+ * 配置支付宝支付接口的相关参数，包括应用ID、密钥、回调地址等
+ * 
+ * @author 李吉隆
+ * @date 2025-11-26
  */
-
 public class AlipayConfig {
 	
 //↓↓↓↓↓↓↓↓↓↓请在这里配置您的基本信息↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 
 	// 应用ID,您的APPID，收款账号既是您的APPID对应支付宝账号
-	public static String app_id = "";
+	public static String app_id = "9021000150654585";
 	
 	// 商户私钥，您的PKCS8格式RSA2私钥
     public static String merchant_private_key ="";
@@ -31,10 +28,10 @@ public class AlipayConfig {
 	public static String return_url = "http://PayRent_war_exploded/alipay.trade.page.pay-JAVA-UTF-8/return_url.jsp";*/
 
     // 服务器异步通知页面路径  需http://格式的完整路径，不能加?id=123这类自定义参数，必须外网可以正常访问
-    public static String notify_url = "https://你的服务器或内网穿透域名/pay/alipay/notify";
+    public static String notify_url = "http://localhost:5173/pay/alipay/notify";
 
     // 页面跳转同步通知页面路径 需http://格式的完整路径，不能加?id=123这类自定义参数，必须外网可以正常访问
-    public static String return_url = "https://你的服务器或内网穿透域名/home/PaymentSuccess";
+    public static String return_url = "http://localhost:5173/home/PaymentSuccess";
 
 	// 签名方式
 	public static String sign_type = "RSA2";
@@ -58,6 +55,11 @@ public class AlipayConfig {
     public static void logResult(String sWord) {
         FileWriter writer = null;
         try {
+                /**
+     * FileWriter
+     * 
+     * @author 李吉隆
+     */
             writer = new FileWriter(log_path + "alipay_log_" + System.currentTimeMillis()+".txt");
             writer.write(sWord);
         } catch (Exception e) {

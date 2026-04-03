@@ -10,8 +10,12 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
-    * 订单表
-    */
+ * 订单实体类
+ * 用于存储订单信息，包括订单号、用户、商品、金额、状态等
+ * 
+ * @author 李吉隆
+ * @date 2025-11-29
+ */
 @TableName(value = "`order`")
 public class Order {
     /**
@@ -136,9 +140,20 @@ public class Order {
     @TableField(value = "order_type")
     private Byte orderType;
 
+        /**
+     * 获取 getTableNo
+     * 
+     * @return getTableNo
+     * @author 熊杨博
+     */
     public String getTableNo() {
         return tableNo;
     }
+/**
+ * setTableNo方法
+ *
+ * @author 李吉隆
+ */
 
     public void setTableNo(String tableNo) {
         this.tableNo = tableNo;
@@ -146,10 +161,20 @@ public class Order {
 
     @TableField(exist = false)
     private String tableNo;
+/**
+ * getShopname方法
+ *
+ * @author 李吉隆
+ */
 
     public String getShopname() {
         return shopname;
     }
+/**
+ * setShopname方法
+ *
+ * @author 李吉隆
+ */
 
     public void setShopname(String shopname) {
         this.shopname = shopname;
@@ -168,10 +193,20 @@ public class Order {
     public Long getId() {
         return id;
     }
+/**
+ * getNickname方法
+ *
+ * @author 李吉隆
+ */
 
     public String getNickname() {
         return nickname;
     }
+/**
+ * setNickname方法
+ *
+ * @author 李吉隆
+ */
 
     public void setNickname(String nickname) {
         this.nickname = nickname;

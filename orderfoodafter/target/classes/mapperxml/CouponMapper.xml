@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.CouponMapper">
+  <resultMap id="BaseResultMap" type="org.example.orderfoodafter.entity.Coupon">
+    <!--@mbg.generated-->
+    <!--@Table coupon-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="user_id" jdbcType="BIGINT" property="userId" />
+    <result column="shop_id" jdbcType="BIGINT" property="shopId" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="discount_type" jdbcType="TINYINT" property="discountType" />
+    <result column="discount_value" jdbcType="DECIMAL" property="discountValue" />
+    <result column="min_amount" jdbcType="DECIMAL" property="minAmount" />
+    <result column="start_time" jdbcType="TIMESTAMP" property="startTime" />
+    <result column="end_time" jdbcType="TIMESTAMP" property="endTime" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, user_id, shop_id, title, discount_type, discount_value, min_amount, start_time, 
+    end_time, `status`, create_time, update_time
+  </sql>
+</mapper>

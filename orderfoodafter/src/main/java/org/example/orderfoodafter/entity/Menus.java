@@ -7,8 +7,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
 
 /**
-    * 菜单权限表
-    */
+ * 菜单权限实体类
+ * 用于存储系统菜单权限信息，实现基于角色的权限控制
+ * 
+ * @author 李吉隆
+ * @date 2025-12-13
+ */
 @TableName(value = "menus")
 public class Menus {
     /**

@@ -12,6 +12,13 @@ import org.example.orderfoodafter.mapper.ProductDetailMapper;
 import org.example.orderfoodafter.entity.Product;
 import org.example.orderfoodafter.entity.ProductDetail;
 
+/**
+ * 商品Service实现类
+ * 实现商品相关的业务逻辑处理功能
+ *
+ * @author 李梦瑶
+ * @date 2026-03-18
+ */
 @Service
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService{
     @Autowired
@@ -22,6 +29,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Autowired
     private CommontUtil commontUtil;
+
+    /**
+     * 查询销量前五的商品
+     * @return 商品列表
+     * @author 李梦瑶
+     */
     @Override
     public List<Product> selectproducttop5() {
         List<Product> productList=baseMapper.selectproducttop5();
@@ -30,6 +43,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     /**
      * 根据ID查询详情：适配前端编辑功能
+     * @param id 商品ID
+     * @return 商品实体
+     * @author 李梦瑶
      */
     @Override
     public Product getProductById(Long id) {
@@ -42,6 +58,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     /**
      * 新增菜品：适配前端增加功能
+     * @param product 商品实体
+     * @return 是否新增成功
+     * @author 李梦瑶
      */
     @Override
     public boolean addProduct(Product product) {
@@ -74,6 +93,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     /**
      * 编辑菜品：适配前端编辑功能
+     * @param product 商品实体
+     * @return 是否编辑成功
+     * @author 李梦瑶
      */
     @Override
     public boolean updateProduct(Product product) {
@@ -123,6 +145,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     /**
      * 删除菜品：适配前端删除功能
+     * @param id 商品ID
+     * @return 是否删除成功
+     * @author 李梦瑶
      */
     @Override
     public boolean deleteProduct(Long id) {
@@ -134,12 +159,24 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return productMapper.deleteById(id) > 0;
     }
 
+    /**
+     * 根据查询条件查询店铺商品
+     * @param queryWrapper 查询条件
+     * @return 商品列表
+     * @author 李梦瑶
+     */
     @Override
     public List<Product> selectallproductbyshop(QueryWrapper<Product> queryWrapper) {
        List<Product> products = baseMapper.selectallproductbyshop(queryWrapper);
        return products;
     }
 
+    /**
+     * 根据店铺ID查询商品列表
+     * @param shopId 店铺ID
+     * @return 商品列表
+     * @author 李梦瑶
+     */
     @Override
     public List<Product> selectallproductbyshop(Long shopId) {
         QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
@@ -147,18 +184,35 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return productMapper.selectList(queryWrapper);
     }
 
+    /**
+     * 根据商品ID查询商品信息
+     * @param productid 商品ID
+     * @return 商品实体
+     * @author 李梦瑶
+     */
     @Override
     public Product selectproductinfobyproductid(int productid) {
         Product product=baseMapper.selectproductinfobyproductid(productid);
         return product;
     }
 
+    /**
+     * 根据分类查询商品
+     * @param queryWrapper 查询条件
+     * @return 商品列表
+     * @author 李梦瑶
+     */
     @Override
     public List<Product> selectProductbycategory(QueryWrapper queryWrapper) {
         List<Product> Productlist = baseMapper.selectProductbycategory(queryWrapper);
         return Productlist;
     }
 
+    /**
+     * 查询销量前十的商品
+     * @return 商品列表
+     * @author 李梦瑶
+     */
     @Override
     public List<Product> selectproducttop10() {
         List<Product> productList=baseMapper.selectproducttop10();

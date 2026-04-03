@@ -9,7 +9,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
- * 投诉表
+ * 投诉实体类
+ * 用于存储用户的投诉信息，包括投诉内容、处理状态等
+ * 
+ * @author 李吉隆
+ * @date 2026-01-09
  */
 @TableName(value = "complaint")
 public class Complaint {
@@ -73,25 +77,56 @@ public class Complaint {
     @TableField(value = "update_time")
     private Date updateTime;
 
+        /**
+     * 获取 getShopId
+     * 
+     * @return getShopId
+     * @author 熊杨博
+     */
     public Long getShopId() {
         return shopId;
     }
+/**
+ * setShopId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setShopId(Long shopId) {
         this.shopId = shopId;
     }
+/**
+ * getUsername方法
+ *
+ * @author 李吉隆
+ */
 
     public String getUsername() {
         return username;
     }
+/**
+ * setUsername方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUsername(String username) {
         this.username = username;
     }
+/**
+ * getPhonenum方法
+ *
+ * @author 李吉隆
+ */
 
     public String getPhonenum() {
         return phonenum;
     }
+/**
+ * setPhonenum方法
+ *
+ * @author 李吉隆
+ */
 
     public void setPhonenum(String phonenum) {
         this.phonenum = phonenum;
@@ -114,78 +149,169 @@ public class Complaint {
     @TableField(exist = false)
     private String orderNo;
 
+        /**
+     * 获取 getOrderNo
+     * 
+     * @return getOrderNo
+     * @author 熊杨博
+     */
     public String getOrderNo() {
         return orderNo;
     }
+/**
+ * setOrderNo方法
+ *
+ * @author 李吉隆
+ */
 
     public void setOrderNo(String orderNo) {
         this.orderNo = orderNo;
     }
 
     // Getters and Setters
+/**
+ * getId方法
+ *
+ * @author 李吉隆
+ */
     public Long getId() {
         return id;
     }
+/**
+ * setId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setId(Long id) {
         this.id = id;
     }
+/**
+ * getUserId方法
+ *
+ * @author 李吉隆
+ */
 
     public Long getUserId() {
         return userId;
     }
+/**
+ * setUserId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUserId(Long userId) {
         this.userId = userId;
     }
+/**
+ * getOrderId方法
+ *
+ * @author 李吉隆
+ */
 
 
 
     public Long getOrderId() {
         return orderId;
     }
+/**
+ * setOrderId方法
+ *
+ * @author 李吉隆
+ */
 
     public void setOrderId(Long orderId) {
         this.orderId = orderId;
     }
+/**
+ * getComplaintType方法
+ *
+ * @author 李吉隆
+ */
 
     public Byte getComplaintType() {
         return complaintType;
     }
+/**
+ * setComplaintType方法
+ *
+ * @author 李吉隆
+ */
 
     public void setComplaintType(Byte complaintType) {
         this.complaintType = complaintType;
     }
+/**
+ * getContent方法
+ *
+ * @author 李吉隆
+ */
 
     public String getContent() {
         return content;
     }
+/**
+ * setContent方法
+ *
+ * @author 李吉隆
+ */
 
     public void setContent(String content) {
         this.content = content;
     }
+/**
+ * getStatus方法
+ *
+ * @author 李吉隆
+ */
 
 
     public Byte getStatus() {
         return status;
     }
+/**
+ * setStatus方法
+ *
+ * @author 李吉隆
+ */
 
     public void setStatus(Byte status) {
         this.status = status;
     }
+/**
+ * getCreateTime方法
+ *
+ * @author 李吉隆
+ */
 
 
     public Date getCreateTime() {
         return createTime;
     }
+/**
+ * setCreateTime方法
+ *
+ * @author 李吉隆
+ */
 
     public void setCreateTime(Date createTime) {
         this.createTime = createTime;
     }
+/**
+ * getUpdateTime方法
+ *
+ * @author 李吉隆
+ */
 
     public Date getUpdateTime() {
         return updateTime;
     }
+/**
+ * setUpdateTime方法
+ *
+ * @author 李吉隆
+ */
 
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;

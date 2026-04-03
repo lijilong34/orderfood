@@ -6,7 +6,10 @@ import java.time.LocalDateTime;
 
 /**
  * 系统状态实体类
- * 存储系统监控数据
+ * 用于存储系统监控数据，包括CPU使用率、内存使用情况、JVM状态等
+ * 
+ * @author 李吉隆
+ * @date 2026-02-16
  */
 @Data
 public class SystemStatus {

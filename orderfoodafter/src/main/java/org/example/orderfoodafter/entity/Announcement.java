@@ -8,7 +8,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
- * 公告表
+ * 公告实体类
+ * 用于存储系统公告信息，包括公告标题、内容、发布时间等
+ * 
+ * @author 李吉隆
+ * @date 2025-11-16
  */
 @TableName(value = "`announcement`")
 public class Announcement {

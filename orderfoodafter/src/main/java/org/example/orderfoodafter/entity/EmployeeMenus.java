@@ -5,6 +5,13 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
+/**
+ * 员工菜单权限实体类
+ * 用于存储员工的菜单权限关联信息，实现权限管理
+ * 
+ * @author 李吉隆
+ * @date 2025-12-11
+ */
 @TableName(value = "employee_menus")
 public class EmployeeMenus {
     /**

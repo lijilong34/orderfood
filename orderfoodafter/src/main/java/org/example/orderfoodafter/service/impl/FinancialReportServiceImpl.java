@@ -13,13 +13,22 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * 财务报表ServiceImpl
+ * 财务报表Service实现类
+ * 实现财务报表相关的业务逻辑处理功能
+ * 
+ * @author 李吉隆
+ * @date 2026-01-19
  */
 @Service
 public class FinancialReportServiceImpl extends ServiceImpl<FinancialReportMapper, FinancialReport> implements FinancialReportService {
 
     @Autowired
     private FinancialReportMapper financialReportMapper;
+/**
+ * generateReport方法
+ *
+ * @author 熊杨博
+ */
 
     @Override
     public FinancialReport generateReport(Long shopId, Date reportDate, Byte reportType) {
@@ -35,6 +44,11 @@ public class FinancialReportServiceImpl extends ServiceImpl<FinancialReportMappe
         Integer totalCustomers = financialReportMapper.getShopCustomers(shopId, startDate, endDate);
 
         // 创建报表对象
+            /**
+     * FinancialReport
+     * 
+     * @author 李吉隆
+     */
         FinancialReport report = new FinancialReport();
         report.setShopId(shopId);
         report.setShopName(shopName);
@@ -57,14 +71,34 @@ public class FinancialReportServiceImpl extends ServiceImpl<FinancialReportMappe
 
         // 计算完成率
         if (report.getTotalOrders() > 0) {
+                /**
+     * BigDecimal
+     * 
+     * @author 李吉隆
+     */
             BigDecimal completionRate = new BigDecimal(report.getCompletedOrders())
+                        /**
+     * divide
+     * 
+     * @author 李吉隆
+     */
                     .divide(new BigDecimal(report.getTotalOrders()), 4, RoundingMode.HALF_UP)
+                        /**
+     * multiply
+     * 
+     * @author 李吉隆
+     */
                     .multiply(new BigDecimal(100));
             report.setAvgOrderAmount(completionRate);
         }
 
         return report;
     }
+/**
+ * getFinancialStats方法
+ *
+ * @author 熊杨博
+ */
 
     @Override
     public Map<String, Object> getFinancialStats(Long shopId, Date startDate, Date endDate) {
@@ -73,11 +107,21 @@ public class FinancialReportServiceImpl extends ServiceImpl<FinancialReportMappe
         stats.put("totalCustomers", totalCustomers);
         return stats;
     }
+/**
+ * getFinancialReportList方法
+ *
+ * @author 熊杨博
+ */
 
     @Override
     public List<FinancialReport> getFinancialReportList(Long shopId, Byte reportType, Date startDate, Date endDate) {
         return financialReportMapper.getFinancialReportList(shopId, reportType, startDate, endDate);
     }
+/**
+ * getOverviewData方法
+ *
+ * @author 熊杨博
+ */
 
     @Override
     public Map<String, Object> getOverviewData(Long shopId) {
@@ -122,11 +166,21 @@ public class FinancialReportServiceImpl extends ServiceImpl<FinancialReportMappe
 
         return result;
     }
+/**
+ * getShopName方法
+ *
+ * @author 熊杨博
+ */
 
     private String getShopName(Long shopId) {
         // TODO: 从shop表获取店铺名称
         return "店铺" + shopId;
     }
+/**
+ * getStartDate方法
+ *
+ * @author 熊杨博
+ */
 
     private Date getStartDate(Date reportDate, Byte reportType) {
         Calendar cal = Calendar.getInstance();
@@ -168,6 +222,11 @@ public class FinancialReportServiceImpl extends ServiceImpl<FinancialReportMappe
 
         return cal.getTime();
     }
+/**
+ * getEndDate方法
+ *
+ * @author 熊杨博
+ */
 
     private Date getEndDate(Date reportDate, Byte reportType) {
         Calendar cal = Calendar.getInstance();
@@ -209,6 +268,11 @@ public class FinancialReportServiceImpl extends ServiceImpl<FinancialReportMappe
 
         return cal.getTime();
     }
+/**
+ * generateDailyReports方法
+ *
+ * @author 熊杨博
+ */
 
     @Override
     public List<FinancialReport> generateDailyReports(Long shopId, Date startDate, Date endDate) {
@@ -241,6 +305,11 @@ public class FinancialReportServiceImpl extends ServiceImpl<FinancialReportMappe
             Integer totalCustomers = financialReportMapper.getShopCustomers(shopId, dayStart.getTime(), dayEnd.getTime());
             
             // 创建报表对象
+                /**
+     * FinancialReport
+     * 
+     * @author 李吉隆
+     */
             FinancialReport report = new FinancialReport();
             report.setShopId(shopId);
             report.setShopName(getShopName(shopId));

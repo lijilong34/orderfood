@@ -7,14 +7,32 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Properties;
 
 /**
- * @author Administrator
- * @date 2025/10/21 13:33
+ * 分页配置类
+ * 配置PageHelper分页插件，支持数据库分页查询功能
+ * 
+ * @author 李吉隆
+ * @date 2025-11-21
  */
 @Configuration
 public class PageHelperConfig {
+/**
+ * pageHelper方法
+ *
+ * @author 李吉隆
+ */
     @Bean
     public PageInterceptor pageHelper() {
+            /**
+     * PageInterceptor
+     * 
+     * @author 李吉隆
+     */
         PageInterceptor pageInterceptor = new PageInterceptor();
+            /**
+     * Properties
+     * 
+     * @author 李吉隆
+     */
         Properties properties = new Properties();
         properties.setProperty("offsetAsPageNum","true");
         properties.setProperty("rowBoundsWithCount","true");

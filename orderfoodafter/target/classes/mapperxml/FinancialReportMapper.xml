@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.FinancialReportMapper">
+
+    <!-- 获取店铺财务统计数据 - 当shopId为null时获取所有店铺的汇总数据 -->
+    <select id="getShopFinancialStats" resultType="java.util.Map">
+        SELECT
+            COUNT(*) as totalOrders,
+            SUM(CASE WHEN status = 4 THEN 1 ELSE 0 END) as completedOrders,
+            SUM(CASE WHEN status = 5 THEN 1 ELSE 0 END) as cancelledOrders,
+            COALESCE(SUM(total_amount), 0) as totalAmount,
+            COALESCE(SUM(pay_amount), 0) as payAmount,
+            COALESCE(SUM(discount_amount), 0) as discountAmount,
+            COALESCE(SUM(CASE WHEN pay_type = 1 THEN pay_amount ELSE 0 END), 0) as balancePayAmount,
+            COALESCE(SUM(CASE WHEN pay_type = 2 THEN pay_amount ELSE 0 END), 0) as alipayAmount,
+            COALESCE(SUM(CASE WHEN pay_type = 3 THEN pay_amount ELSE 0 END), 0) as wechatPayAmount,
+            COALESCE(AVG(pay_amount), 0) as avgOrderAmount
+        FROM `order`
+        WHERE 1=1
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="startDate != null">
+            AND DATE(create_time) >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND DATE(create_time) &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 获取店铺客户数 -->
+    <select id="getShopCustomers" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT user_id) as totalCustomers
+        FROM `order`
+        WHERE 1=1
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="startDate != null">
+            AND DATE(create_time) >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND DATE(create_time) &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 获取时间段内的财务报表列表 -->
+    <select id="getFinancialReportList" resultType="org.example.orderfoodafter.entity.FinancialReport">
+        SELECT
+            id,
+            shop_id as shopId,
+            shop_name as shopName,
+            report_date as reportDate,
+            report_type as reportType,
+            total_orders as totalOrders,
+            completed_orders as completedOrders,
+            cancelled_orders as cancelledOrders,
+            total_amount as totalAmount,
+            pay_amount as payAmount,
+            discount_amount as discountAmount,
+            wechat_pay_amount as wechatPayAmount,
+            alipay_amount as alipayAmount,
+            balance_pay_amount as balancePayAmount,
+            avg_order_amount as avgOrderAmount,
+            total_customers as totalCustomers,
+            new_customers as newCustomers,
+            create_time as createTime,
+            update_time as updateTime
+        FROM financial_report
+        WHERE 1=1
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="reportType != null">
+            AND report_type = #{reportType}
+        </if>
+        <if test="startDate != null">
+            AND report_date >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND report_date &lt;= #{endDate}
+        </if>
+        ORDER BY report_date DESC
+    </select>
+
+</mapper>

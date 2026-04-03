@@ -5,6 +5,13 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
+/**
+ * 商品详情实体类
+ * 用于存储商品的详细信息，包括规格、参数等扩展信息
+ * 
+ * @author 李吉隆
+ * @date 2026-02-08
+ */
 @TableName(value = "product_detail")
 public class ProductDetail {
     /**

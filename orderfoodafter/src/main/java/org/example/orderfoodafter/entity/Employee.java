@@ -7,7 +7,11 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
 
 /**
- * 员工信息表（餐厅管理员员工管理功能）
+ * 员工实体类
+ * 用于存储餐厅员工信息，包括员工基本信息、职位、权限等
+ * 
+ * @author 李吉隆
+ * @date 2025-12-09
  */
 @TableName(value = "employee")
 public class Employee {
@@ -23,9 +27,20 @@ public class Employee {
     @TableField(value = "shop_id")
     private Long shopId;
 
+        /**
+     * 获取 getShopName
+     * 
+     * @return getShopName
+     * @author 李梦瑶
+     */
     public String getShopName() {
         return shopName;
     }
+/**
+ * setShopName方法
+ *
+ * @author 李吉隆
+ */
 
     public void setShopName(String shopName) {
         this.shopName = shopName;

@@ -12,14 +12,31 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+/**
+ * Redis配置类
+ * 配置Redis连接和序列化方式，用于缓存管理和会话存储
+ * 
+ * @author 李吉隆
+ * @date 2025-11-29
+ */
 @Configuration
 public class RedisConfig {
+/**
+ * redisTemplate方法
+ *
+ * @author 李吉隆
+ */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
 
         // 配置ObjectMapper
+            /**
+     * ObjectMapper
+     * 
+     * @author 李吉隆
+     */
         ObjectMapper om = new ObjectMapper();
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         // 使用现代API替代已弃用的enableDefaultTyping
@@ -34,6 +51,11 @@ public class RedisConfig {
                 new Jackson2JsonRedisSerializer<>(om, Object.class);
 
         // 配置StringRedisSerializer
+            /**
+     * StringRedisSerializer
+     * 
+     * @author 李吉隆
+     */
         StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
 
         // key采用String的序列化方式

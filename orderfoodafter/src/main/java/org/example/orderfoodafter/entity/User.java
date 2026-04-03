@@ -8,7 +8,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
- * 用户表
+ * 用户实体类
+ * 用于存储用户信息，包括用户名、密码、联系方式、余额等
+ * 
+ * @author 李吉隆
+ * @date 2025-11-21
  */
 @TableName(value = "`user`")
 public class User {

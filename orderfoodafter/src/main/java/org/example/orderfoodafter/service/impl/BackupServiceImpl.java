@@ -9,8 +9,20 @@ import org.example.orderfoodafter.mapper.BackupMapper;
 import org.example.orderfoodafter.service.BackupService;
 import org.springframework.stereotype.Service;
 
+/**
+ * 备份Service实现类
+ * 实现备份相关的业务逻辑处理功能
+ * 
+ * @author 李吉隆
+ * @date 2026-03-01
+ */
 @Service
 public class BackupServiceImpl extends ServiceImpl<BackupMapper, Backup> implements BackupService {
+/**
+ * getBackupList方法
+ *
+ * @author 李吉隆
+ */
 
     @Override
     public R getBackupList(Integer currentPage, Integer pageSize) {
@@ -31,6 +43,11 @@ public class BackupServiceImpl extends ServiceImpl<BackupMapper, Backup> impleme
             return R.error("获取备份列表失败");
         }
     }
+/**
+ * saveBackupRecord方法
+ *
+ * @author 李吉隆
+ */
 
     @Override
     public R saveBackupRecord(Backup backup) {

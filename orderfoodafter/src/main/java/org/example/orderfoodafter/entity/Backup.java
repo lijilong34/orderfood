@@ -11,6 +11,10 @@ import java.time.LocalDateTime;
 
 /**
  * 数据库备份实体类
+ * 用于存储数据库备份记录信息，包括备份文件名称、路径、大小、备份时间等
+ * 
+ * @author 李吉隆
+ * @date 2026-02-26
  */
 @Data
 @TableName("backup")

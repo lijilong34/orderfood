@@ -7,7 +7,10 @@ import java.util.Map;
 
 /**
  * 操作日志Service接口
- * 提供日志管理的业务逻辑方法
+ * 提供操作日志相关的业务逻辑处理功能，包括操作日志信息的增删改查等操作
+ *
+ * @author 熊杨博
+ * @date 2026-01-20
  */
 public interface OperationLogService {
     

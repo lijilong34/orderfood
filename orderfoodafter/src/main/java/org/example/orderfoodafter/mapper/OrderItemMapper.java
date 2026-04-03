@@ -7,6 +7,13 @@ import org.example.orderfoodafter.entity.OrderItem;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 订单项Mapper接口
+ * 用于对订单项表进行数据访问操作，提供订单项信息的增删改查功能
+ *
+ * @author 李梦瑶
+ * @date 2025-11-28
+ */
 public interface OrderItemMapper extends BaseMapper<OrderItem> {
     List<OrderItem> selectorderitembyorderid(@Param("orderid") int orderid);
 

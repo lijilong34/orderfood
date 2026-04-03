@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.OrderItemMapper">
+  <resultMap id="BaseResultMap" type="org.example.orderfoodafter.entity.OrderItem">
+    <!--@mbg.generated-->
+    <!--@Table order_item-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="order_id" jdbcType="BIGINT" property="orderId" />
+    <result column="product_id" jdbcType="BIGINT" property="productId" />
+    <result column="price" jdbcType="DECIMAL" property="price" />
+    <result column="quantity" jdbcType="INTEGER" property="quantity" />
+    <result column="amount" jdbcType="DECIMAL" property="amount" />
+    <result column="remark" jdbcType="VARCHAR" property="remark" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, order_id, product_id, price, quantity, amount, remark, create_time
+  </sql>
+
+  <select id="selectorderitembyorderid" resultMap="BaseResultMap">
+    SELECT  order_item.id, order_item.order_id,order_item.product_id,product.name as productname,order_item.price,order_item.quantity,order_item.amount,order_item.remark
+    FROM order_item inner join  product  on order_item.product_id = product.id
+    WHERE order_id = #{orderid}
+  </select>
+
+  <select id="selectbyorderitembyid" resultMap="BaseResultMap">
+    SELECT 
+    oi.id, oi.order_id, oi.product_id, oi.price, oi.quantity, oi.amount, oi.remark, oi.create_time
+    FROM order_item oi
+    JOIN `order` o ON oi.order_id = o.id
+    WHERE o.shop_id = #{shopid}
+  </select>
+
+  <select id="selectbyuserid" resultMap="BaseResultMap">
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM order_item oi
+    JOIN `order` o ON oi.order_id = o.id
+    WHERE o.user_id = #{userid}
+  </select>
+
+  <select id="selectOrderItembylist" resultMap="BaseResultMap">
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM order_item
+    WHERE 1=1
+    <if test="id != null and id != 0">
+      AND id = #{id}
+    </if>
+    <if test="oid != null and oid != 0">
+      AND order_id = #{oid}
+    </if>
+    <if test="name != null and name != ''">
+      AND product_id IN (
+        SELECT id FROM product WHERE name LIKE CONCAT('%', #{name}, '%')
+      )
+    </if>
+    <if test="phone != null and phone != ''">
+      AND order_id IN (
+        SELECT id FROM `order` WHERE phone LIKE CONCAT('%', #{phone}, '%')
+      )
+    </if>
+  </select>
+
+  <!-- 自定义SQL查询方法 -->
+  <select id="selectMapsBySql" resultType="map">
+    ${sql}
+  </select>
+</mapper>

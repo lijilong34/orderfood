@@ -7,6 +7,13 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 评价Service接口
+ * 提供评价相关的业务逻辑处理功能，包括评价信息的增删改查等操作
+ *
+ * @author 熊杨博
+ * @date 2026-01-05
+ */
 public interface EvaluationService extends IService<Evaluation>{
 
 

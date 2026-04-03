@@ -14,7 +14,10 @@ import java.util.Enumeration;
 
 /**
  * 操作日志拦截器
- * 自动记录系统操作日志
+ * 自动记录系统操作日志，包括请求URL、响应时间、操作人等信息
+ * 
+ * @author 李吉隆
+ * @date 2025-12-18
  */
 @Component
 public class OperationLogInterceptor implements HandlerInterceptor {
@@ -53,6 +56,11 @@ public class OperationLogInterceptor implements HandlerInterceptor {
         long responseTime = endTime - startTime.get();
         
         // 构建操作日志
+            /**
+     * OperationLog
+     * 
+     * @author 李吉隆
+     */
         OperationLog operationLog = new OperationLog();
         
         // 设置请求信息
@@ -82,6 +90,11 @@ public class OperationLogInterceptor implements HandlerInterceptor {
         }
         
         // 异步记录日志，避免影响响应
+            /**
+     * Thread
+     * 
+     * @author 李吉隆
+     */
         new Thread(() -> {
             try {
                 operationLogService.recordOperationLog(operationLog);
@@ -142,6 +155,11 @@ public class OperationLogInterceptor implements HandlerInterceptor {
         String method = request.getMethod();
         
         // 根据URI和方法构建操作内容
+            /**
+     * StringBuilder
+     * 
+     * @author 李吉隆
+     */
         StringBuilder content = new StringBuilder();
         content.append("用户");
         content.append("通过");

@@ -18,6 +18,13 @@ import org.example.orderfoodafter.mapper.OrderItemMapper;
 import org.example.orderfoodafter.mapper.ProductMapper;
 import org.example.orderfoodafter.mapper.CommonMapper;
 
+/**
+ * 店铺Service实现类
+ * 实现店铺相关的业务逻辑处理功能
+ *
+ * @author 周子金
+ * @date 2026-03-18
+ */
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements ShopService{
 
@@ -33,34 +40,72 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements Sh
     @Autowired
     private CommonMapper commonMapper;
 
+    /**
+     * 根据分类名称查询店铺
+     * @param categoryname 分类名称
+     * @return 店铺列表
+     * @author 周子金
+     */
     @Override
     public List<Shop> selectcategoryforshop(String categoryname) {
         List<Shop> shops = baseMapper.selectcategoryforshop(categoryname);
         return shops;
     }
-    
+
+    /**
+     * 根据分类名称查询店铺ID列表
+     * @param categoryname 分类名称
+     * @return 店铺ID列表
+     * @author 周子金
+     */
     @Override
     public List<Long> selectShopIdsByCategory(String categoryname) {
         return baseMapper.selectShopIdsByCategory(categoryname);
     }
-    
+
+    /**
+     * 根据店铺ID列表查询店铺及其分类
+     * @param shopIds 店铺ID列表
+     * @return 店铺列表
+     * @author 周子金
+     */
     @Override
     public List<Shop> selectShopWithCategoriesByIds(List<Long> shopIds) {
         return baseMapper.selectShopWithCategoriesByIds(shopIds);
     }
 
+    /**
+     * 查询热门店铺
+     * @return 店铺列表
+     * @author 周子金
+     */
     @Override
     public List selectShopBytop() {
         List<Shop> shops = baseMapper.selectShopBytop();
         return shops;
     }
 
+    /**
+     * 多条件查询店铺
+     * @param id 店铺ID
+     * @param cid 分类ID
+     * @param nickname 昵称
+     * @param phone 电话
+     * @return 店铺列表
+     * @author 周子金
+     */
     @Override
     public List<Shop> selectShopBylist(int id,int cid,String nickname,String phone) {
         List<Shop> shop=baseMapper.selectShopBylist(id,cid,nickname,phone);
         return shop;
     }
 
+    /**
+     * 获取店铺仪表板数据
+     * @param shopId 店铺ID
+     * @return 仪表板数据
+     * @author 周子金
+     */
     @Override
     public Map<String, Object> getShopDashboardData(Long shopId) {
         Map<String, Object> result = new HashMap<>();
@@ -124,6 +169,12 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements Sh
         return result;
     }
 
+    /**
+     * 获取热门商品数据
+     * @param shopId 店铺ID
+     * @return 热门商品数据
+     * @author 周子金
+     */
     @Override
     public List<Map<String, Object>> getHotProducts(Long shopId) {
         List<Map<String, Object>> hotProducts = new ArrayList<>();
@@ -142,6 +193,12 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements Sh
         return hotProducts;
     }
 
+    /**
+     * 获取最新订单数据
+     * @param shopId 店铺ID
+     * @return 最新订单数据
+     * @author 周子金
+     */
     @Override
     public List<Map<String, Object>> getLatestOrders(Long shopId) {
         List<Map<String, Object>> latestOrders = new ArrayList<>();
@@ -167,6 +224,12 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements Sh
         return latestOrders;
     }
 
+    /**
+     * 获取店铺趋势数据
+     * @param shopId 店铺ID
+     * @return 店铺趋势数据
+     * @author 周子金
+     */
     @Override
     public Map<String, Object> getShopTrendData(Long shopId) {
         Map<String, Object> trendData = new HashMap<>();
@@ -244,17 +307,35 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements Sh
         return trendData;
     }
 
+    /**
+     * 查询店铺及其商品
+     * @param queryWrapper 查询条件
+     * @return 店铺列表
+     * @author 周子金
+     */
     @Override
     public List<Shop> selectallandProduct(QueryWrapper<Shop> queryWrapper) {
         List<Shop> shopList = baseMapper.selectallProductbyconut(queryWrapper);
         return shopList;
     }
 
+    /**
+     * 根据店铺ID列表查询店铺及其商品
+     * @param shopIds 店铺ID列表
+     * @return 店铺列表
+     * @author 周子金
+     */
     @Override
     public List<Shop> selectShopsWithProductsByIds(List<Long> shopIds) {
         return baseMapper.selectShopsWithProductsByIds(shopIds);
     }
 
+    /**
+     * 获取订单状态文本
+     * @param status 订单状态
+     * @return 状态文本
+     * @author 周子金
+     */
     private String getStatusText(int status) {
         switch (status) {
             case 0: return "待支付";
@@ -265,7 +346,13 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements Sh
             default: return "未知状态";
         }
     }
-    
+
+    /**
+     * 获取星期几文本
+     * @param dayIndex 星期索引
+     * @return 星期几文本
+     * @author 周子金
+     */
     private String getDayOfWeek(int dayIndex) {
         String[] days = {"日", "一", "二", "三", "四", "五", "六"};
         return days[dayIndex % 7];

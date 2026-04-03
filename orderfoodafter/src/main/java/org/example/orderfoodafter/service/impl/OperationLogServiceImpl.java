@@ -13,13 +13,30 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 操作日志Service实现类
+ * 实现操作日志相关的业务逻辑处理功能
+ * 
+ * @author 李吉隆
+ * @date 2026-01-24
+ */
 @Service
 public class OperationLogServiceImpl extends ServiceImpl<OperationLogMapper, OperationLog> implements OperationLogService {
+/**
+ * recordOperationLog方法
+ *
+ * @author 周子金
+ */
 
     @Override
     public int recordOperationLog(OperationLog operationLog) {
         return this.baseMapper.insert(operationLog);
     }
+/**
+ * getOperationLogList方法
+ *
+ * @author 周子金
+ */
 
     @Override
     public Map<String, Object> getOperationLogList(Map<String, Object> params, int pageNum, int pageSize) {
@@ -61,21 +78,41 @@ public class OperationLogServiceImpl extends ServiceImpl<OperationLogMapper, Ope
         resultMap.put("pages", pageInfo.getPages());
         return resultMap;
     }
+/**
+ * getOperationLogById方法
+ *
+ * @author 周子金
+ */
 
     @Override
     public OperationLog getOperationLogById(Long logId) {
         return this.getById(logId);
     }
+/**
+ * deleteOperationLog方法
+ *
+ * @author 周子金
+ */
 
     @Override
     public int deleteOperationLog(Long logId) {
         return this.baseMapper.deleteById(logId);
     }
+/**
+ * batchDeleteOperationLog方法
+ *
+ * @author 周子金
+ */
 
     @Override
     public int batchDeleteOperationLog(List<Long> logIds) {
         return this.baseMapper.deleteBatchIds(logIds);
     }
+/**
+ * deleteOperationLogByTimeRange方法
+ *
+ * @author 周子金
+ */
 
     @Override
     public int deleteOperationLogByTimeRange(String startTime, String endTime) {

@@ -8,13 +8,21 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * 拦截器配置类
- * 注册系统拦截器
+ * 注册和配置系统拦截器，用于请求拦截、日志记录等功能
+ * 
+ * @author 李吉隆
+ * @date 2025-11-28
  */
 @Configuration
 public class InterceptorConfig implements WebMvcConfigurer {
 
     @Autowired
     private OperationLogInterceptor operationLogInterceptor;
+/**
+ * addInterceptors方法
+ *
+ * @author 李吉隆
+ */
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {

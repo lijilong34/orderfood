@@ -9,8 +9,12 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
 /**
-    * 餐桌信息表（餐厅管理员/服务员餐桌管理功能）
-    */
+ * 餐桌信息实体类
+ * 用于存储餐桌信息，包括餐桌编号、状态、位置等
+ * 
+ * @author 李吉隆
+ * @date 2026-01-23
+ */
 @TableName(value = "table_info")
 public class TableInfo {
     /**
@@ -116,6 +120,11 @@ public class TableInfo {
      *
      * @return capacity - 容纳人数
      */
+/**
+ * getCapacity方法
+ *
+ * @author 李吉隆
+ */
     public Integer getCapacity() {
         return capacity;
     }

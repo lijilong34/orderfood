@@ -1,108 +1,192 @@
+// 定义登录前控制器的包路径
 package org.example.orderfoodafter.controller;
-
-import ai.z.openapi.ZhipuAiClient;
+// 导入智谱AI服务模型类
 import ai.z.openapi.service.model.*;
+// 导入langchain4j工具相关类
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.*;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+// 导入MyBatis Plus的查询条件包装器类
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+// 导入PageHelper分页插件
 import com.github.pagehelper.Page;
+// 导入PageHelper分页插件
 import com.github.pagehelper.PageHelper;
+// 导入PageInfo分页信息类
 import com.github.pagehelper.PageInfo;
+// 导入默认属性配置类
 import org.example.orderfoodafter.common.DefaulteProperties;
+// 导入通用响应结果类
 import org.example.orderfoodafter.common.R;
+// 导入WhereEntity查询实体类
 import org.example.orderfoodafter.common.WhereEntity;
+// 导入商品实体类
 import org.example.orderfoodafter.entity.Product;
+// 导入店铺实体类
 import org.example.orderfoodafter.entity.Shop;
+// 导入商品服务接口
 import org.example.orderfoodafter.service.ProductService;
+// 导入店铺服务接口
 import org.example.orderfoodafter.service.ShopService;
+// 导入Spring的自动装配注解
 import org.springframework.beans.factory.annotation.Autowired;
+// 导入Spring的媒体类型类
 import org.springframework.http.MediaType;
+// 导入Spring的SSE事件发送器类
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
+// 导入Java的File类
 import java.io.File;
+// 导入Java的IO异常类
 import java.io.IOException;
+// 导入Java的文件工具类
 import java.nio.file.Files;
-
+// 导入Java的LocalDate类
 import java.time.LocalDate;
+// 导入Java的LocalDateTime类
 import java.time.LocalDateTime;
+// 导入Java的日期时间格式化类
 import java.time.format.DateTimeFormatter;
+// 导入Java的Util包下的所有类
 import java.util.*;
+// 导入Java的并发包下的所有类
 import java.util.concurrent.*;
+// 导入Spring的请求映射注解集合
 import org.springframework.web.bind.annotation.*;
+// 导入Java的原子长整型类
 import java.util.concurrent.atomic.AtomicLong;
-
+// 导入Java的原子整型类
 import java.util.concurrent.atomic.AtomicInteger;
+// 导入Jackson TypeReference用于JSON解析
+import com.fasterxml.jackson.core.type.TypeReference;
 
 /**
- * 登录前的控制类
- * 时间:2025/11/27
- * 作者：李吉隆
+ * 登录前控制器
+ * 负责处理用户登录前的相关操作，包括店铺查询、商品推荐、AI智能问答等功能
+ * 
+ * @author 李梦瑶
+ * @date 2026-03-18
  */
+// 标记该类为REST控制器，所有方法返回JSON格式数据
 @RestController
+// 定义该控制器的请求路径前缀为/Shopforbefor
 @RequestMapping("/Shopforbefor")
+// 定义登录前控制器类，继承基础控制器，指定实体类型为Shop，服务类型为ShopService
+
 public class LoginbeforController extends BaseController<Shop, ShopService> {
+    // 自动注入店铺服务，使用依赖注入方式获取实例
     @Autowired
     private ShopService shopService;
+    // 自动注入商品服务，使用依赖注入方式获取实例
     @Autowired
     private ProductService productService;
+    // 自动注入评价映射器，使用依赖注入方式获取实例
     @Autowired
     private org.example.orderfoodafter.mapper.EvaluationMapper evaluationMapper;
+    // 自动注入MCP服务，使用依赖注入方式获取实例
     @Autowired
     private org.example.orderfoodafter.service.McpService mcpService;
+    // 自动注入AI服务，使用依赖注入方式获取实例
+    @Autowired
+    private org.example.orderfoodafter.service.AiService aiService;
+    // 注入ChatLanguageModel用于工具调用
+    @Autowired
+    private ChatLanguageModel chatLanguageModel;
+    // Jackson ObjectMapper用于JSON解析
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
+    /**
+     * 构造函数
+     *
+     * @param shopService 店铺服务
+     * @author 李梦瑶
+     */
     public LoginbeforController(ShopService shopService) {
+        // 调用父类构造函数，传入服务实例
         super(shopService);
+        // 将传入的服务实例赋值给本地变量
         this.shopService = shopService;
     }
 
     /**
      * 查询销量前十的商店
      *
-     * @return
+     * @return 商店列表
+     * @author 李梦瑶
      */
-    @GetMapping("/selectshopbytop10")
-    public R selectshopbytop10() {
+    // 定义处理查询销量前十商店的GET请求接口，路径为/selectshopbytop30
+    @GetMapping("/selectshopbytop30")
+    public R selectshopbytop30() {
+        // 调用服务查询销量前十的商店列表
         List<Shop> shopList = shopService.selectShopBytop();
+        // 返回商店列表数据
+        /**
+         * R
+         *
+         * @author 李梦瑶
+         */
         return new R().addData("shopList", shopList);
     }
 
 
-
     /**
-     * 多条件查询当前订单
-     * @param id
-     * @param cid
-     * @param nickname
-     * @param phone
-     * @return
+     * 多条件查询商店
+     *
+     * @param id       商店ID
+     * @param cid      分类ID
+     * @param nickname 昵称
+     * @param phone    电话
+     * @param page     页码
+     * @return 查询结果
+     * @author 李梦瑶
      */
+    // 定义处理多条件查询订单的POST请求接口，路径为/selectshopbylist
     @PostMapping("/selectshopbylist")
-    public R selectshopbyid(@RequestParam("id") int id,@RequestParam("cid") int cid,@RequestParam("nickname") String nickname,@RequestParam("phone") String phone,@RequestParam("page") String page) {
-        int orderpage=0;
-        if (page==null){
-            orderpage=1;
-        }else {
-            orderpage=Integer.parseInt(page);
+    public R selectshopbyid(@RequestParam("id") int id, @RequestParam("cid") int cid, @RequestParam("nickname") String nickname, @RequestParam("phone") String phone, @RequestParam("page") String page) {
+        // 初始化订单页码
+        int orderpage = 0;
+        // 判断页码是否为空
+        if (page == null) {
+            // 如果为空，设置为1
+            orderpage = 1;
+        } else {
+            // 否则转换为整数
+            orderpage = Integer.parseInt(page);
         }
-        Page<Object> obj= PageHelper.startPage(orderpage, 6);
-        List<Shop> shopList=shopService.selectShopBylist(id,cid, nickname,phone);
+        // 启动分页，每页显示6条记录
+        Page<Object> obj = PageHelper.startPage(orderpage, 6);
+        // 调用服务根据条件查询商店列表
+        List<Shop> shopList = shopService.selectShopBylist(id, cid, nickname, phone);
+        // 将商店列表封装为分页信息对象
         PageInfo pageInfo = new PageInfo<>(shopList);
-        return new R().addData("shopList", shopList).addData("obj",pageInfo);
+        // 返回商店列表和分页信息数据
+        /**
+         * R
+         *
+         * @author 李梦瑶
+         */
+        return new R().addData("shopList", shopList).addData("obj", pageInfo);
     }
 
     /**
-     * 描述:查询整个平台前五的菜品
-     * 作者：赵康乐
-     * 日期:2025/12/6
+     * 查询整个平台前五的菜品
+     *
+     * @return 菜品列表
+     * @author 李梦瑶
      */
+    // 定义处理查询前五菜品的GET请求接口，路径为/selectproducttop5
     @GetMapping("/selectproducttop5")
     public R selectproducttop5() {
+        // 调用服务查询前五的商品列表
         List<Product> productList = productService.selectproducttop5();
+        // 返回商品列表数据
+        /**
+         * R
+         *
+         * @author 李梦瑶
+         */
         return new R().addData("productList", productList);
     }
-
-    private static final ZhipuAiClient client = ZhipuAiClient.builder()
-            .apiKey("f298b63fa87f451889ea75c33f3ef58e.sWVWtdr2Qe4UKdtd")
-            .build();
-
 
     // 重试次数
     private static final int MAX_RETRIES = 5;
@@ -112,10 +196,25 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
     // 令牌桶算法参数
     private static final long REFILL_RATE = 1; // 每秒生成1个令牌
     private static final long BUCKET_CAPACITY = 5; // 桶容量
+    /**
+     * AtomicLong方法
+     *
+     * @author 李梦瑶
+     */
     private static final AtomicLong availableTokens = new AtomicLong(BUCKET_CAPACITY); // 当前可用令牌数
+    /**
+     * AtomicLong
+     *
+     * @author 李梦瑶
+     */
     private static final AtomicLong lastRefillTime = new AtomicLong(System.currentTimeMillis()); // 上次令牌补充时间
 
     // 简单的并发限流，使用AtomicInteger记录当前请求数
+    /**
+     * AtomicInteger
+     *
+     * @author 李梦瑶
+     */
     private static final AtomicInteger currentRequests = new AtomicInteger(0);
     private static final int MAX_CONCURRENT_REQUESTS = 3;
 
@@ -125,26 +224,52 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
     private static final ConcurrentHashMap<String, CacheEntry> requestCache = new ConcurrentHashMap<>();
     private static final long CACHE_EXPIRY_TIME = 30 * 60 * 1000; // 30分钟
 
-    // 缓存条目类
+    /**
+     * 缓存条目类
+     *
+     * @author 李梦瑶
+     */
     private static class CacheEntry {
         private final String response;
         private final long timestamp;
 
+        /**
+         * 构造函数
+         *
+         * @param response 响应内容
+         * @author 李梦瑶
+         */
         public CacheEntry(String response) {
             this.response = response;
             this.timestamp = System.currentTimeMillis();
         }
 
+        /**
+         * 判断缓存是否过期
+         *
+         * @return 是否过期
+         * @author 李梦瑶
+         */
         public boolean isExpired() {
             return System.currentTimeMillis() - timestamp > CACHE_EXPIRY_TIME;
         }
 
+        /**
+         * 获取响应内容
+         *
+         * @return 响应内容
+         * @author 李梦瑶
+         */
         public String getResponse() {
             return response;
         }
     }
 
-    // 令牌桶算法：补充令牌
+    /**
+     * 令牌桶算法：补充令牌
+     *
+     * @author 李梦瑶
+     */
     private void refillTokens() {
         long now = System.currentTimeMillis();
         long timeElapsed = now - lastRefillTime.get();
@@ -165,7 +290,12 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
         }
     }
 
-    // 令牌桶算法：尝试获取令牌
+    /**
+     * 令牌桶算法：尝试获取令牌
+     *
+     * @return 是否获取成功
+     * @author 李梦瑶
+     */
     private boolean tryAcquireToken() {
         refillTokens();
 
@@ -181,17 +311,17 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
         }
     }
 
-    // 令牌桶算法：释放令牌
-    private void releaseToken() {
-        long currentTokens = availableTokens.get();
-        if (currentTokens < BUCKET_CAPACITY) {
-            availableTokens.compareAndSet(currentTokens, currentTokens + 1);
-        }
-    }
+    // 存储对话历史，用于多轮工具调用（使用langchain4j的ChatMessage）
+    private static final ConcurrentHashMap<String, List<dev.langchain4j.data.message.ChatMessage>> conversationHistory = new ConcurrentHashMap<>();
 
-    // 存储对话历史，用于多轮工具调用
-    private static final ConcurrentHashMap<String, List<ChatMessage>> conversationHistory = new ConcurrentHashMap<>();
-
+    /**
+     * AI对话接口
+     *
+     * @param text1 请求参数
+     * @return AI响应
+     * @throws IOException 异常信息
+     * @author 李梦瑶
+     */
     @PostMapping("/takeai")
     public R takeai(@RequestBody Map<String, String> text1) throws IOException {
         // 移除JSON字符串的引号（如果前端发送的是带引号的字符串）
@@ -203,20 +333,35 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
 
         System.out.println("收到用户输入: " + text + ", 对话ID: " + conversationId);
 
-        String imgname=text1.get("imgone");
-        String desctext=null;
-        if (imgname!=null){
-            desctext=getdesc(imgname);
-        }else {
-            desctext="用户未上传图片";
+        String imgname = text1.get("imgone");
+        String desctext = null;
+        if (imgname != null) {
+            try {
+                desctext = aiService.getImageDescription(imgname);
+            } catch (Exception e) {
+                System.err.println("获取图片描述失败: " + e.getMessage());
+                desctext = "图片描述获取失败";
+            }
+        } else {
+            desctext = "用户未上传图片";
         }
         System.out.println("图片描述: " + desctext);
 
         // 获取工具结果
         String toolResults = text1.get("toolResults");
 
+        // 判断是否需要使用智谱AI（有图片或工具调用结果包含截图）
+        boolean hasImage = (imgname != null && !imgname.isEmpty());
+        boolean hasScreenshot = toolResults != null && toolResults.contains("screenshot");
+        boolean needsZhipuAi = hasImage || hasScreenshot;
+
         // 检查message参数是否为空（但如果有toolResults，则允许message为空）
         if ((text == null || text.trim().isEmpty()) && (toolResults == null || toolResults.isEmpty())) {
+            /**
+             * R
+             *
+             * @author 李梦瑶
+             */
             R errorResult = new R();
             errorResult.setCode(400);
             errorResult.setMessage("请输入有效的对话内容");
@@ -224,59 +369,11 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
         }
 
         // 获取或创建对话历史
-        List<ChatMessage> messages = conversationHistory.computeIfAbsent(conversationId, k -> new ArrayList<>());
+        List<dev.langchain4j.data.message.ChatMessage> messages = conversationHistory.computeIfAbsent(conversationId, k -> new ArrayList<>());
 
-        // 如果有工具调用结果，将其添加到对话历史
-        if (toolResults != null && !toolResults.isEmpty()) {
-            System.out.println("收到工具执行结果: " + toolResults);
-
-            // 检查是否包含截图
-            if (toolResults.contains("screenshot")) {
-                System.out.println("检测到截图，创建图片消息");
-                // 创建包含截图的消息
-                String screenshotUrl = extractScreenshotUrl(toolResults);
-                if (screenshotUrl != null && !screenshotUrl.isEmpty()) {
-                    System.out.println("截图URL长度: " + screenshotUrl.length());
-                    ChatMessage imageMessage = ChatMessage.builder()
-                            .role("user")
-                            .content(Arrays.asList(
-                                    MessageContent.builder()
-                                            .type("text")
-                                            .text("这是当前页面的截图，请根据截图内容回答用户的问题或执行操作。")
-                                            .build(),
-                                    MessageContent.builder()
-                                            .type("image_url")
-                                            .imageUrl(ImageUrl.builder()
-                                                    .url(screenshotUrl)
-                                                    .build())
-                                            .build()))
-                            .build();
-                    messages.add(imageMessage);
-                } else {
-                    System.out.println("截图URL为空，使用文本消息");
-                    messages.add(ChatMessage.builder()
-                            .role("tool")
-                            .content(toolResults)
-                            .build());
-                }
-            } else {
-                // 不包含截图，作为普通文本处理
-                messages.add(ChatMessage.builder()
-                        .role("tool")
-                        .content(toolResults)
-                        .build());
-            }
-        } else if (text != null && !text.isEmpty()) {
-            // 只有当message不为空时才添加用户消息到对话历史
-            messages.add(ChatMessage.builder()
-                    .role(ChatMessageRole.USER.value())
-                    .content(text)
-                    .build());
-        }
-
-        // 限制对话历史长度，避免过长
-        if (messages.size() > 20) {
-            messages = messages.subList(messages.size() - 20, messages.size());
+        // 添加用户消息
+        if (text != null && !text.isEmpty()) {
+            messages.add(dev.langchain4j.data.message.UserMessage.from(text));
         }
 
         // 【重要】当有工具执行结果时，跳过缓存检查，继续对话
@@ -286,6 +383,11 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
             if (cachedEntry != null) {
                 if (!cachedEntry.isExpired()) {
                     System.out.println("从缓存中获取AI响应");
+                    /**
+                     * R
+                     *
+                     * @author 李梦瑶
+                     */
                     R result = new R().addData("aitake", cachedEntry.getResponse());
                     System.out.println("返回缓存结果给前端");
                     return result;
@@ -301,6 +403,11 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
 
         // 使用令牌桶算法进行速率限制
         if (!tryAcquireToken()) {
+            /**
+             * R
+             *
+             * @author 李梦瑶
+             */
             R errorResult = new R();
             errorResult.setCode(503);
             errorResult.setMessage("当前AI请求过多，请稍后再试");
@@ -309,6 +416,11 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
 
         // 简单的并发限流，防止系统过载
         if (currentRequests.get() >= MAX_CONCURRENT_REQUESTS) {
+            /**
+             * R
+             *
+             * @author 李梦瑶
+             */
             R errorResult = new R();
             errorResult.setCode(503);
             errorResult.setMessage("当前AI请求过多，请稍后再试");
@@ -397,332 +509,198 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
 
         System.out.println("已添加 " + aiTools.size() + " 个 Chrome 工具");
 
-        // 创建聊天完成请求，使用对话历史
-        List<ChatMessage> messageList = new ArrayList<>();
+        // 【核心逻辑】根据用户意图选择是否使用工具
+        // 1. 如果用户明确要求操作浏览器（点击、填写表单、导航等），使用MCP工具
+        // 2. 如果只是普通对话，直接使用langchain4j
 
-        // 添加系统提示
-        messageList.add(ChatMessage.builder()
-                .role("system")
-                .content("浏览器助手。图片:"+desctext+"。规则:1.只在本系统操作 2.持续执行直到满足需求 3.用工具:截图/读页面/点击/填写")
-                .build());
+        // 检查用户是否要求操作浏览器
+        boolean requiresBrowserAction = requiresBrowserAction(text);
 
-        // 添加对话历史
-        messageList.addAll(messages);
-
-        ChatCompletionCreateParams request = ChatCompletionCreateParams.builder()
-                .model("glm-4.6v-flash")
-                .messages(messageList)
-                .tools(aiTools)
-                .build();
-
-        System.out.println("开始调用AI API...");
-        int retryCount = 0;
-        Random random = new Random();
-
-        // 添加重试机制
-        while (retryCount < MAX_RETRIES) {
-            try {
-                // 增加当前请求计数
-                currentRequests.incrementAndGet();
-
-                // 发送请求（同步调用，会等待AI完全响应）
-                ChatCompletionResponse response = client.chat().createChatCompletion(request);
-                System.out.println("AI API调用完成");
-
-                // 获取回复
-                if (response.isSuccess()) {
-                    ChatMessage message = response.getData().getChoices().get(0).getMessage();
-                    Object reply = message.getContent();
-                    List<ToolCalls> toolCallsList = message.getToolCalls();
-
-                    // 如果AI调用了工具，自动执行 MCP 工具并将结果返回给 AI 继续对话
-                    if (toolCallsList != null && !toolCallsList.isEmpty()) {
-                        System.out.println("AI调用了工具，工具数量: " + toolCallsList.size());
-
-                        // 流式循环调用：持续执行工具直到 AI 给出最终文本回复
-                        int maxIterations = 10; // 最大迭代次数，防止无限循环
-                        int iteration = 0;
-                        
-                        while (iteration < maxIterations) {
-                            iteration++;
-                            System.out.println("=== 流式调用迭代 " + iteration + " ===");
-                            
-                            // 将AI的回复（包含工具调用）添加到对话历史
-                            messages.add(message);
-
-                            // 执行所有工具调用
-                            for (ToolCalls toolCalls : toolCallsList) {
-                                ChatFunctionCall functionCall = toolCalls.getFunction();
-                                if (functionCall != null) {
-                                    String toolName = functionCall.getName();
-                                    Object argsObj = functionCall.getArguments();
-                                    System.out.println("执行 MCP 工具: " + toolName + ", 参数: " + argsObj);
-
-                                    try {
-                                        // 解析参数
-                                        Object argsData = functionCall.getArguments();
-                                        Map<String, Object> arguments;
-                                        if (argsData instanceof String) {
-                                            arguments = parseArguments((String) argsData);
-                                        } else if (argsData instanceof Map) {
-                                            arguments = (Map<String, Object>) argsData;
-                                        } else {
-                                            arguments = new HashMap<>();
-                                        }
-
-                                        // 调用 MCP 工具
-                                        Map<String, Object> mcpResult = mcpService.callTool(toolName, arguments);
-                                        System.out.println("MCP 工具执行结果: " + mcpResult);
-
-                                        // 将工具执行结果添加到对话历史
-                                        String resultContent = formatMcpResult(mcpResult);
-                                        messages.add(ChatMessage.builder()
-                                                .role("tool")
-                                                .content(resultContent)
-                                                .build());
-
-                                    } catch (Exception e) {
-                                        System.err.println("执行 MCP 工具失败: " + e.getMessage());
-                                        e.printStackTrace();
-                                        // 将错误信息添加到对话历史，让AI知道工具失败了
-                                        messages.add(ChatMessage.builder()
-                                                .role("tool")
-                                                .content("工具执行失败: " + e.getMessage() + "。请尝试其他方法或告诉用户无法完成该操作。")
-                                                .build());
-                                    }
-                                }
-                            }
-
-                            // 限制对话历史长度
-                            if (messages.size() > 20) {
-                                messages = messages.subList(messages.size() - 20, messages.size());
-                            }
-
-                            // 将更新后的对话历史保存
-                            conversationHistory.put(conversationId, messages);
-
-                            // 重新调用 AI，让 AI 根据工具执行结果继续对话
-                            System.out.println("根据工具执行结果，继续调用 AI...");
-                            
-                            // 更新 messageList，包含最新的对话历史
-                            messageList = new ArrayList<>();
-                            messageList.add(ChatMessage.builder()
-                                    .role("system")
-                                    .content("浏览器助手。图片:"+desctext+"。规则:1.只在本系统操作 2.持续执行直到满足需求 3.用工具:截图/读页面/点击/填写")
-                                    .build());
-                            messageList.addAll(messages);
-
-                            // 检查是否有工具执行失败，如果有则移除 tools 参数，强制 AI 给出文本回复
-                            boolean hasToolError = messages.stream()
-                                .anyMatch(msg -> msg.getRole().equals("tool") && 
-                                    msg.getContent() instanceof String && 
-                                    ((String)msg.getContent()).contains("工具执行失败"));
-                            
-                            ChatCompletionCreateParams followUpRequest;
-                            
-                            // 如果有工具执行失败，不提供 tools 参数，强制 AI 给出文本回复
-                            if (!hasToolError) {
-                                followUpRequest = ChatCompletionCreateParams.builder()
-                                    .model("glm-4.6v-flash")
-                                    .messages(messageList)
-                                    .tools(aiTools)
-                                    .build();
-                            } else {
-                                System.out.println("检测到工具执行失败，移除 tools 参数，强制 AI 给出文本回复");
-                                followUpRequest = ChatCompletionCreateParams.builder()
-                                    .model("glm-4.6v-flash")
-                                    .messages(messageList)
-                                    .build();
-                            }
-
-                            ChatCompletionResponse followUpResponse = client.chat().createChatCompletion(followUpRequest);
-                            if (followUpResponse.isSuccess()) {
-                                ChatMessage followUpMessage = followUpResponse.getData().getChoices().get(0).getMessage();
-                                Object followUpReply = followUpMessage.getContent();
-                                toolCallsList = followUpMessage.getToolCalls();
-                                
-                                // 检查 AI 是否又调用了工具
-                                if (toolCallsList != null && !toolCallsList.isEmpty()) {
-                                    System.out.println("AI 继续调用了工具，进入下一轮迭代");
-                                    message = followUpMessage; // 更新 message 为新的 AI 回复
-                                    continue; // 继续循环
-                                } else {
-                                    // AI 给出了最终文本回复，结束循环
-                                    System.out.println("AI 给出了最终回复，结束流式调用");
-                                    
-                                    // 将 AI 的最终回复添加到对话历史
-                                    messages.add(followUpMessage);
-                                    
-                                    // 缓存结果
-                                    if (followUpReply instanceof String) {
-                                        requestCache.put(text, new CacheEntry((String) followUpReply));
-                                    }
-
-                                    R result = new R()
-                                            .addData("aitake", followUpReply)
-                                            .addData("conversationId", conversationId)
-                                            .addData("iterations", iteration);
-                                    System.out.println("返回 AI 最终结果，共迭代 " + iteration + " 次");
-                                    return result;
-                                }
-                            } else {
-                                R errorResult = new R();
-                                errorResult.setCode(500);
-                                errorResult.setMessage("AI 继续对话失败: " + followUpResponse.getMsg());
-                                return errorResult;
-                            }
-                        }
-                        
-                        // 达到最大迭代次数，返回错误
-                        R errorResult = new R();
-                        errorResult.setCode(500);
-                        errorResult.setMessage("AI 操作超过最大迭代次数，请稍后再试");
-                        return errorResult;
-                    }
-
-                    // 普通文本回复
-                    if (reply instanceof String) {
-                        System.out.println("AI回复内容长度: " + ((String)reply).length() + " 字符");
-                        // 将AI响应存储到缓存
-                        requestCache.put(text, new CacheEntry((String)reply));
-                        System.out.println("AI响应已缓存");
-
-                        // 将AI的回复添加到对话历史
-                        messages.add(message);
-                    }
-                    System.out.println("AI回复: " + reply);
-
-                    System.out.println("准备返回结果给前端");
-                    R result = new R()
-                            .addData("aitake", reply)
-                            .addData("conversationId", conversationId);
-                    System.out.println("返回数据结构: code=" + result.getCode() + ", message=" + result.getMessage() + ", data=" + result.getData());
-                    return result;
-                } else {
-                    System.err.println("AI调用错误: " + response.getMsg());
-
-                    // 如果是频率限制错误，进行重试
-                    if (response.getMsg().contains("Too many API requests") || 
-                        response.getMsg().contains("频率") || 
-                        response.getMsg().contains("限流") ||
-                        response.getMsg().contains("overloaded") ||
-                        response.getMsg().contains("429")) {
-                        retryCount++;
-                        // 指数退避算法，增加随机抖动
-                        long backoffTime = BASE_RETRY_INTERVAL * (long) Math.pow(2, retryCount) + random.nextInt(1000);
-                        System.out.println("AI调用频率过高，正在重试... (" + retryCount + "/" + MAX_RETRIES + ")");
-                        System.out.println("退避时间: " + backoffTime + "ms");
-                        Thread.sleep(backoffTime);
-                        // 重试时重新获取令牌
-                        if (!tryAcquireToken()) {
-                            continue;
-                        }
-                        continue;
-                    }
-
-                    // 其他错误，直接返回
-                    R errorResult = new R();
-                    errorResult.setCode(500);
-                    errorResult.setMessage("ai调用失败: " + response.getMsg());
-                    System.out.println("返回错误结果: " + errorResult.getCode() + ", " + errorResult.getMessage());
-                    return errorResult;
-                }
-            } catch (Exception e) {
-                System.err.println("AI调用异常: " + e.getMessage());
-                e.printStackTrace();
-
-                // 如果是频率限制相关的异常，进行重试
-                if (e.getMessage().contains("Too many API requests") || 
-                    e.getMessage().contains("频率") || 
-                    e.getMessage().contains("限流") ||
-                    e.getMessage().contains("overloaded") ||
-                    e.getMessage().contains("429") ||
-                    e.getMessage().contains("HTTP 429")) {
-                    retryCount++;
-                    // 指数退避算法，增加随机抖动
-                    long backoffTime = BASE_RETRY_INTERVAL * (long) Math.pow(2, retryCount) + random.nextInt(1000);
-                    System.out.println("AI调用频率过高，正在重试... (" + retryCount + "/" + MAX_RETRIES + ")");
-                    System.out.println("退避时间: " + backoffTime + "ms");
-                    try {
-                        Thread.sleep(backoffTime);
-                        // 重试时重新获取令牌
-                        if (!tryAcquireToken()) {
-                            continue;
-                        }
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                    continue;
-                }
-
-                // 其他异常，直接返回
-                R errorResult = new R();
-                errorResult.setCode(500);
-                errorResult.setMessage("ai服务异常: " + e.getMessage());
-                System.out.println("返回异常结果: " + errorResult.getCode() + ", " + errorResult.getMessage());
-                return errorResult;
-            } finally {
-                // 减少当前请求计数
-                currentRequests.decrementAndGet();
-            }
+        if (requiresBrowserAction) {
+            // 用户要求操作浏览器，使用MCP工具
+            System.out.println("检测到浏览器操作请求，使用MCP工具");
+            /**
+             * handleBrowserAction
+             *
+             * @author 李梦瑶
+             */
+            return handleBrowserAction(text, desctext, messages, conversationId);
         }
 
-        // 重试次数用完，返回错误
-        R errorResult = new R();
-        errorResult.setCode(503);
-        errorResult.setMessage("当前AI请求过于繁忙，请稍后再试");
-        System.out.println("返回错误结果: " + errorResult.getCode() + ", " + errorResult.getMessage());
-        return errorResult;
+        // 普通对话，直接使用langchain4j
+        /**
+         * println
+         *
+         * @author 李梦瑶
+         */
+        System.out.println("普通对话，使用 langchain4j (qwen3-coder-plus)");
+
+        // 构建包含图片描述的提示词
+        String fullPrompt = text;
+        if (!"用户未上传图片".equals(desctext) && !"图片描述获取失败".equals(desctext)) {
+            fullPrompt = "用户上传的图片描述: " + desctext + "\n\n用户问题: " + text;
+        }
+
+        try {
+            // 使用 langchain4j 调用AI
+            String response = aiService.chatWithLangChain4j(
+                    List.of(dev.langchain4j.data.message.UserMessage.from(fullPrompt))
+            );
+
+            // 缓存结果
+            /**
+             * put
+             *
+             * @author 李梦瑶
+             */
+            requestCache.put(text, new CacheEntry(response));
+
+            // 添加到对话历史
+            messages.add(dev.langchain4j.data.message.AiMessage.from(response));
+            conversationHistory.put(conversationId, messages);
+
+            /**
+             * R
+             *
+             * @author 李梦瑶
+             */
+            return new R().addData("aitake", response).addData("conversationId", conversationId);
+
+        } catch (Exception e) {
+            /**
+             * R
+             *
+             * @author 李梦瑶
+             */
+            R errorResult = new R();
+            errorResult.setCode(500);
+            errorResult.setMessage("AI调用失败: " + e.getMessage());
+            return errorResult;
+        }
+    }
+
+    /**
+     * 检查用户是否要求操作浏览器
+     *
+     * @param text 用户输入文本
+     * @return 是否需要浏览器操作
+     * @author 李梦瑶
+     */
+    private boolean requiresBrowserAction(String text) {
+        // 扩展关键词列表，包含更多可能触发浏览器操作的关键词
+        String[] keywords = {
+                "点击", "填写", "导航", "打开", "访问", "截图", "查看页面", "登录", "注册", "提交", "选择",
+                "查看", "余额", "账户", "资金", "操作", "控制", "自动化", "浏览器", "网页", "网站",
+                "搜索", "查询", "获取", "进入", "跳转", "刷新"
+        };
+        for (String keyword : keywords) {
+            if (text.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 处理浏览器操作
+     *
+     * @param text           用户输入文本
+     * @param desctext       图片描述
+     * @param messages       对话历史
+     * @param conversationId 对话ID
+     * @return 操作结果
+     * @author 李梦瑶
+     */
+    private R handleBrowserAction(String text, String desctext, List<dev.langchain4j.data.message.ChatMessage> messages, String conversationId) {
+        try {
+            // 创建包含MCP工具规范的请求
+            String fullPrompt = text;
+            if (!"用户未上传图片".equals(desctext) && !"图片描述获取失败".equals(desctext)) {
+                fullPrompt = "用户上传的图片描述: " + desctext + "\n\n用户请求: " + text;
+            }
+
+            fullPrompt += "\n\n【重要提示】你现在拥有浏览器操作能力，必须主动使用工具来完成任务！\n" +
+                    "可用工具：\n" +
+                    "1. chrome_screenshot: 截取当前页面截图\n" +
+                    "2. chrome_read_page: 读取页面可见元素\n" +
+                    "3. chrome_click_element: 点击页面元素（需要selector参数）\n" +
+                    "4. chrome_fill_or_select: 填写表单或选择选项（需要selector和value参数）\n" +
+                    "5. chrome_navigate: 导航到指定URL（需要url参数）\n\n" +
+                    "【强制执行流程】\n" +
+                    "1. 首先使用chrome_read_page读取当前页面内容\n" +
+                    "2. 检查页面中是否有'营养大师'弹窗或类似的弹窗元素\n" +
+                    "3. 如果有'营养大师'弹窗，先使用chrome_click_element关闭该弹窗\n" +
+                    "4. 截图查看当前页面状态\n" +
+                    "5. 根据用户需求执行相应操作（点击、填写、导航等）\n" +
+                    "6. 如果需要，多次截图和读取页面来确认操作结果\n" +
+                    "7. 将操作结果清晰反馈给用户\n\n" +
+                    "8.如果用户要对个人信息进行操作点击我的" +
+                    "【注意事项】\n" +
+                    "- 不要只用文字解释，必须实际使用工具操作浏览器\n" +
+                    "- 每次执行任何操作前，必须先读取页面内容\n" +
+                    "- 如果发现'营养大师'弹窗，必须先关闭它\n" +
+                    "- 如果工具执行失败，尝试其他方法或告诉用户无法完成\n" +
+                    "- 如果用户不需要操作浏览器，直接回复，不要调用mcp工具" +
+                    "- 对于查看余额、登录、导航等任务，必须使用浏览器工具完成";
+
+            // 创建langchain4j的ChatMessage列表
+            List<dev.langchain4j.data.message.ChatMessage> langchainMessages = new ArrayList<>();
+
+            // 添加系统消息
+            langchainMessages.add(dev.langchain4j.data.message.SystemMessage.from(
+                    "你是智能浏览器操作助手，拥有浏览器自动化能力。用户要求你操作浏览器完成任务时，" +
+                            "你必须主动使用提供的工具来实际操作浏览器，而不是只提供文字说明。"
+            ));
+
+            // 添加用户消息
+            langchainMessages.add(dev.langchain4j.data.message.UserMessage.from(fullPrompt));
+
+            // 添加历史对话消息
+            langchainMessages.addAll(messages);
+
+            // 执行完整的工具调用循环
+            String response = aiService.executeToolLoop(
+                    langchainMessages,
+                    createMcpToolSpecifications(),
+                    mcpService,
+                    5 // 最大重试次数
+            );
+
+            // 更新对话历史
+            messages.clear();
+            messages.addAll(langchainMessages);
+            conversationHistory.put(conversationId, messages);
+
+            /**
+             * R
+             *
+             * @author 李梦瑶
+             */
+            return new R().addData("aitake", response).addData("conversationId", conversationId);
+
+        } catch (Exception e) {
+            /**
+             * R
+             *
+             * @author 李梦瑶
+             */
+            R errorResult = new R();
+            errorResult.setCode(500);
+            errorResult.setMessage("浏览器操作失败: " + e.getMessage());
+            return errorResult;
+        }
     }
 
     @Autowired
     public DefaulteProperties defaulteProperties;
 
-    public String getdesc(String imgname) throws IOException {
-        if (imgname == null || imgname.trim().isEmpty()) {
-            return "用户未上传图片";
-        }
-
-        String apiKey = ""; // 请填写您自己的APIKey
-        ZhipuAiClient client = ZhipuAiClient.builder().ofZHIPU()
-                .apiKey(apiKey)
-                .build();
-
-        String filepath=defaulteProperties.getUploadfilepath()+imgname;
-        byte[] bytes = Files.readAllBytes(new File(filepath).toPath());
-        String base64 = Base64.getEncoder().encodeToString(bytes);
-
-        ChatCompletionCreateParams request = ChatCompletionCreateParams.builder()
-                .model("glm-4.6v-flash")
-                .messages(Arrays.asList(
-                        ChatMessage.builder()
-                                .role(ChatMessageRole.USER.value())
-                                .content(Arrays.asList(
-                                        MessageContent.builder()
-                                                .type("text")
-                                                .text("简要描述下这张图片,只输出简要描述后的就行了")
-                                                .build(),
-                                        MessageContent.builder()
-                                                .type("image_url")
-                                                .imageUrl(ImageUrl.builder()
-                                                        .url(base64)
-                                                        .build())
-                                                .build()))
-                                .build()))
-                .build();
-
-        ChatCompletionResponse response = client.chat().createChatCompletion(request);
-        Object reply=null;
-        if (response.isSuccess()) {
-             reply = response.getData().getChoices().get(0).getMessage();
-        } else {
-            System.err.println("错误: " + response.getMsg());
-        }
-      return reply.toString();
-    }
-
-    // 辅助方法：从工具结果中提取截图URL
+    /**
+     * 辅助方法：从工具结果中提取截图URL
+     *
+     * @param toolResults 工具结果
+     * @return 截图URL
+     * @author 李梦瑶
+     */
     private String extractScreenshotUrl(String toolResults) {
         try {
             // 简单的字符串匹配，查找screenshot字段
@@ -745,7 +723,13 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
         }
     }
 
-    // 辅助方法：解析工具参数
+    /**
+     * 辅助方法：解析工具参数
+     *
+     * @param argsStr 参数字符串
+     * @return 解析后的参数映射
+     * @author 李梦瑶
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> parseArguments(String argsStr) {
         try {
@@ -758,89 +742,14 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
         }
     }
 
-    // 辅助方法：格式化 MCP 结果（压缩版，减少token消耗）
-    private String formatMcpResult(Map<String, Object> mcpResult) {
-        if (mcpResult == null) {
-            return "工具执行完成，但未返回结果";
-        }
-
-        try {
-            // 压缩处理：只保留关键信息
-            Map<String, Object> compressedResult = new HashMap<>();
-            
-            // 处理content字段
-            if (mcpResult.containsKey("content")) {
-                Object content = mcpResult.get("content");
-                if (content instanceof List) {
-                    List<?> contentList = (List<?>) content;
-                    if (!contentList.isEmpty()) {
-                        Object firstContent = contentList.get(0);
-                        if (firstContent instanceof Map) {
-                            // 对于Map类型的内容，只保留关键字段
-                            Map<?, ?> contentMap = (Map<?, ?>) firstContent;
-                            Map<String, Object> simplifiedContent = new HashMap<>();
-                            
-                            // 保留错误信息
-                            if (contentMap.containsKey("error")) {
-                                simplifiedContent.put("error", contentMap.get("error"));
-                            }
-                            
-                            // 保留文本内容，限制长度
-                            if (contentMap.containsKey("text")) {
-                                Object text = contentMap.get("text");
-                                if (text instanceof String) {
-                                    String textStr = (String) text;
-                                    // 限制文本长度，避免token消耗过大
-                                    if (textStr.length() > 1000) {
-                                        simplifiedContent.put("text", textStr.substring(0, 1000) + "...（内容已截断）");
-                                    } else {
-                                        simplifiedContent.put("text", textStr);
-                                    }
-                                }
-                            }
-                            
-                            if (!simplifiedContent.isEmpty()) {
-                                compressedResult.put("content", List.of(simplifiedContent));
-                            }
-                        } else if (firstContent instanceof String) {
-                            // 对于String类型的内容，限制长度
-                            String contentStr = (String) firstContent;
-                            if (contentStr.length() > 1000) {
-                                compressedResult.put("content", List.of(contentStr.substring(0, 1000) + "...（内容已截断）"));
-                            } else {
-                                compressedResult.put("content", List.of(contentStr));
-                            }
-                        } else {
-                            // 其他类型，简单转换为字符串
-                            compressedResult.put("content", List.of(firstContent.toString()));
-                        }
-                    }
-                }
-            }
-            
-            // 保留错误状态
-            if (mcpResult.containsKey("isError")) {
-                compressedResult.put("isError", mcpResult.get("isError"));
-            }
-            
-            if (compressedResult.isEmpty()) {
-                return "工具执行成功";
-            }
-            
-            // 转换为简洁的JSON
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.writeValueAsString(compressedResult);
-        } catch (Exception e) {
-            // 出错时返回简洁的错误信息
-            return "工具执行结果处理失败: " + e.getMessage();
-        }
-    }
-
-    
-
     /**
      * 流式AI对话接口 - 使用SSE实时输出
+     *
+     * @param message        用户消息
+     * @param imgone         图片
+     * @param conversationId 对话ID
      * @return SseEmitter
+     * @author 李梦瑶
      */
     @GetMapping(value = "/takeaiStream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter takeaiStream(
@@ -854,397 +763,173 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
         executor.execute(() -> {
             try {
                 String userMessage = message;
-                String desctext = imgone != null ? getdesc(imgone) : "用户未上传图片";
+
+                // 获取图片描述（使用智谱AI）
+                String desctext = "用户未上传图片";
+                if (imgone != null && !imgone.isEmpty()) {
+                    try {
+                        desctext = aiService.getImageDescription(imgone);
+                    } catch (Exception e) {
+                        System.err.println("获取图片描述失败: " + e.getMessage());
+                        desctext = "图片描述获取失败";
+                    }
+                }
 
                 System.out.println("收到流式请求: " + userMessage + ", 对话ID: " + conversationId);
-                
+                System.out.println("图片描述: " + desctext);
+
                 // 发送开始消息
                 emitter.send(SseEmitter.event()
-                    .name("start")
-                    .data("正在为您处理...")
-                    .id(String.valueOf(System.currentTimeMillis())));
-                
+                        .name("start")
+                        .data("正在为您处理...")
+                        .id(String.valueOf(System.currentTimeMillis())));
+
                 // 获取或创建对话历史
-                List<ChatMessage> messages = conversationHistory.computeIfAbsent(conversationId, k -> new ArrayList<>());
+                List<dev.langchain4j.data.message.ChatMessage> messages = conversationHistory.computeIfAbsent(conversationId, k -> new ArrayList<>());
 
                 // 添加用户消息
                 if (userMessage != null && !userMessage.isEmpty()) {
-                    messages.add(ChatMessage.builder()
-                        .role(ChatMessageRole.USER.value())
-                        .content(userMessage)
-                        .build());
+                    messages.add(dev.langchain4j.data.message.UserMessage.from(userMessage));
                 }
-                
-                // 流式循环调用工具
-                int maxIterations = 10;
-                int iteration = 0;
-                List<ChatTool> aiTools = createAiTools(desctext);
-                int maxRetries = 3;
-                int retryDelay = 2000;
-                
-                while (iteration < maxIterations) {
-                    iteration++;
-                    
-                    // 尝试获取令牌，如果没有令牌则等待后重试
-                    int retryCount = 0;
-                    while (!tryAcquireToken()) {
-                        retryCount++;
-                        if (retryCount >= maxRetries) {
-                            emitter.send(SseEmitter.event()
-                                .name("error")
-                                .data("AI服务繁忙，请稍后再试"));
-                            return;
-                        }
-                        try {
-                            emitter.send(SseEmitter.event()
-                                .name("thinking")
-                                .data("AI服务繁忙，等待中... (" + retryCount + "/" + maxRetries + ")")
-                                .id(String.valueOf(System.currentTimeMillis())));
-                            Thread.sleep(retryDelay * retryCount);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                    }
-                    
-                    // 创建请求
-                    List<ChatMessage> requestMessages = new ArrayList<>();
-                    requestMessages.add(ChatMessage.builder()
-                        .role("system")
-                        .content("浏览器助手。图片:"+desctext+"。规则:1.只在本系统操作 2.持续执行直到满足需求 3.用工具:截图/读页面/点击/填写")
-                        .build());
-                    requestMessages.addAll(messages);
-                    
-                    ChatCompletionCreateParams request = ChatCompletionCreateParams.builder()
-                        .model("glm-4.6v-flash")
-                        .messages(requestMessages)
-                        .tools(aiTools)
-                        .build();
-                    
-                    // 调用AI（带重试机制）
-                    ChatCompletionResponse response = null;
-                    boolean apiSuccess = false;
-                    for (int apiRetry = 0; apiRetry < maxRetries; apiRetry++) {
-                        try {
-                            // 发送尝试消息
-                            emitter.send(SseEmitter.event()
-                                .name("thinking")
-                                .data("正在请求AI服务... (" + (apiRetry + 1) + "/" + maxRetries + ")")
-                                .id(String.valueOf(System.currentTimeMillis())));
-                            
-                            response = client.chat().createChatCompletion(request);
-                            if (response.isSuccess()) {
-                                apiSuccess = true;
-                                break;
-                            }
-                            // 如果是429错误，增加等待时间
-                            if (response.getMsg() != null && (response.getMsg().contains("429") || response.getMsg().contains("overloaded") || response.getMsg().contains("too many requests"))) {
-                                if (apiRetry < maxRetries - 1) {
-                                    // 发送等待消息
-                                    emitter.send(SseEmitter.event()
-                                        .name("thinking")
-                                        .data("AI服务繁忙，等待中... (" + (apiRetry + 1) + "/" + maxRetries + ")")
-                                        .id(String.valueOf(System.currentTimeMillis())));
-                                    // 指数退避策略
-                                    int waitTime = retryDelay * (int) Math.pow(2, apiRetry);
-                                    System.out.println("[AI调用] 429错误，等待" + waitTime + "毫秒后重试");
-                                    Thread.sleep(waitTime);
-                                } else {
-                                    // 最后一次重试失败
-                                    System.out.println("[AI调用] 429错误，重试次数用尽");
-                                    emitter.send(SseEmitter.event()
-                                        .name("error")
-                                        .data("AI服务繁忙，请稍后再试"));
+
+                // 【核心逻辑】根据用户意图选择是否使用工具
+                // 1. 如果用户明确要求操作浏览器（点击、填写表单、导航等），使用MCP工具
+                // 2. 如果只是普通对话，直接使用langchain4j流式
+
+                // 检查用户是否要求操作浏览器
+                boolean requiresBrowserAction = requiresBrowserAction(userMessage);
+
+                if (requiresBrowserAction) {
+                    // 用户要求操作浏览器，使用MCP工具
+                    System.out.println("流式对话 - 检测到浏览器操作请求，使用MCP工具");
+                    handleBrowserActionStream(emitter, userMessage, desctext, messages, conversationId);
+                    return;
+                }
+
+                // 普通对话，使用langchain4j流式
+                // 构建包含图片描述的提示词
+                String fullPrompt = userMessage;
+                if (!"用户未上传图片".equals(desctext) && !"图片描述获取失败".equals(desctext)) {
+                    fullPrompt = "用户上传的图片描述: " + desctext + "\n\n用户问题: " + userMessage;
+                }
+
+                /**
+                 * println
+                 *
+                 * @author 李梦瑶
+                 */
+                System.out.println("流式对话 - 使用 langchain4j (qwen3-coder-plus)");
+
+                try {
+                    // 使用 langchain4j 流式调用AI
+                    aiService.chatWithLangChain4jStream(
+                            List.of(dev.langchain4j.data.message.UserMessage.from(fullPrompt)),
+                            new dev.langchain4j.model.chat.response.StreamingChatResponseHandler() {
+                                /**
+                                 * StringBuilder方法
+                                 *
+                                 * @author 李梦瑶
+                                 */
+                                private final StringBuilder fullResponse = new StringBuilder();
+
+                                @Override
+                                /**
+                                 * onPartialResponse
+                                 *
+                                 * @author 李梦瑶
+                                 */
+                                public void onPartialResponse(String partialResponse) {
+                                    try {
+                                        // 实时发送每个token到前端
+                                        emitter.send(SseEmitter.event()
+                                                .name("content")
+                                                .data(partialResponse)
+                                                .id(String.valueOf(System.currentTimeMillis())));
+                                        fullResponse.append(partialResponse);
+                                    } catch (IOException e) {
+                                        System.err.println("发送SSE消息失败: " + e.getMessage());
+                                    }
                                 }
-                            } else {
-                                break;
-                            }
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        } catch (retrofit2.adapter.rxjava3.HttpException e) {
-                            // 捕获Retrofit HTTP异常（放在ZAiHttpException之前）
-                            System.out.println("[AI调用] 捕获到Retrofit HttpException: " + e.getMessage());
-                            System.out.println("[AI调用] HTTP状态码: " + e.code());
-                            if (e.code() == 429) {
-                                if (apiRetry < maxRetries - 1) {
-                                    // 发送等待消息
+
+                                /**
+                                 * onCompleteResponse方法
+                                 *
+                                 * @author 李梦瑶
+                                 */
+
+                                @Override
+                                public void onCompleteResponse(dev.langchain4j.model.chat.response.ChatResponse completeResponse) {
+                                    try {
+                                        // 添加到对话历史
+                                        messages.add(dev.langchain4j.data.message.AiMessage.from(fullResponse.toString()));
+                                        conversationHistory.put(conversationId, messages);
+
+                                        // 发送完成消息
+                                        emitter.send(SseEmitter.event()
+                                                .name("end")
+                                                .data("处理完成")
+                                                .id(String.valueOf(System.currentTimeMillis())));
+                                        emitter.complete();
+                                    } catch (IOException e) {
+                                        System.err.println("发送完成消息失败: " + e.getMessage());
+                                        emitter.completeWithError(e);
+                                    }
+                                }
+
+                                /**
+                                 * onError方法
+                                 *
+                                 * @author 李梦瑶
+                                 */
+
+                                @Override
+                                public void onError(Throwable error) {
                                     try {
                                         emitter.send(SseEmitter.event()
-                                            .name("thinking")
-                                            .data("AI服务繁忙，等待中... (" + (apiRetry + 1) + "/" + maxRetries + ")")
-                                            .id(String.valueOf(System.currentTimeMillis())));
-                                        // 指数退避策略
-                                        int waitTime = retryDelay * (int) Math.pow(2, apiRetry);
-                                        System.out.println("[AI调用] 429错误，等待" + waitTime + "毫秒后重试");
-                                        Thread.sleep(waitTime);
-                                    } catch (IOException ioException) {
-                                        ioException.printStackTrace();
+                                                .name("error")
+                                                .data("处理异常: " + error.getMessage()));
+                                        emitter.completeWithError(error);
+                                    } catch (IOException e) {
+                                        System.err.println("发送错误消息失败: " + e.getMessage());
                                     }
-                                } else {
-                                    // 最后一次重试失败
-                                    System.out.println("[AI调用] 429错误，重试次数用尽");
-                                    emitter.send(SseEmitter.event()
-                                        .name("error")
-                                        .data("AI服务繁忙，请稍后再试"));
                                 }
-                            } else {
-                                // 其他HTTP异常
-                                System.out.println("[AI调用] 其他HTTP异常，状态码: " + e.code());
-                                if (apiRetry == maxRetries - 1) {
-                                    emitter.send(SseEmitter.event()
-                                        .name("error")
-                                        .data("AI调用异常: HTTP " + e.code() + " - " + e.getMessage()));
-                                }
-                                break;
                             }
-                        } catch (ai.z.openapi.service.model.ZAiHttpException e) {
-                            // 捕获HTTP异常
-                            System.out.println("[AI调用] 捕获到ZAiHttpException: " + e.getMessage());
-                            if (e.getMessage() != null && (e.getMessage().contains("429") || e.getMessage().contains("overloaded") || e.getMessage().contains("too many requests"))) {
-                                if (apiRetry < maxRetries - 1) {
-                                    // 发送等待消息
-                                    try {
-                                        emitter.send(SseEmitter.event()
-                                            .name("thinking")
-                                            .data("AI服务繁忙，等待中... (" + (apiRetry + 1) + "/" + maxRetries + ")")
-                                            .id(String.valueOf(System.currentTimeMillis())));
-                                        // 指数退避策略
-                                        int waitTime = retryDelay * (int) Math.pow(2, apiRetry);
-                                        System.out.println("[AI调用] 429错误，等待" + waitTime + "毫秒后重试");
-                                        Thread.sleep(waitTime);
-                                    } catch (IOException ioException) {
-                                        ioException.printStackTrace();
-                                    }
-                                } else {
-                                    // 最后一次重试失败
-                                    System.out.println("[AI调用] 429错误，重试次数用尽");
-                                    emitter.send(SseEmitter.event()
-                                        .name("error")
-                                        .data("AI服务繁忙，请稍后再试"));
-                                }
-                            } else {
-                                // 其他HTTP异常
-                                System.out.println("[AI调用] 其他HTTP异常: " + e.getMessage());
-                                if (apiRetry == maxRetries - 1) {
-                                    emitter.send(SseEmitter.event()
-                                        .name("error")
-                                        .data("AI调用异常: " + e.getMessage()));
-                                }
-                                break;
-                            }
-                        } catch (Exception e) {
-                            System.out.println("[AI调用] 捕获到其他异常: " + e.getMessage());
-                            e.printStackTrace();
-                            if (apiRetry == maxRetries - 1) {
-                                emitter.send(SseEmitter.event()
-                                    .name("error")
-                                    .data("AI调用异常: " + e.getMessage()));
-                            }
-                        }
-                    }
-                    
-                    if (!apiSuccess || response == null || !response.isSuccess()) {
-                        // 检查是否已经通过异常处理发送了错误消息
-                        if (response != null) {
-                            String errorMsg = response.getMsg();
-                            if (errorMsg != null && !(errorMsg.contains("429") || errorMsg.contains("overloaded"))) {
-                                emitter.send(SseEmitter.event()
-                                    .name("error")
-                                    .data("AI调用失败: " + errorMsg));
-                            }
-                        } else if (apiSuccess) {
-                            emitter.send(SseEmitter.event()
+                    );
+                } catch (Exception e) {
+                    try {
+                        emitter.send(SseEmitter.event()
                                 .name("error")
-                                .data("AI调用失败: 未知错误"));
-                        }
-                        break;
+                                .data("处理异常: " + e.getMessage()));
+                        emitter.completeWithError(e);
+                    } catch (IOException ioException) {
+                        ioException.printStackTrace();
                     }
-                    
-                    ChatMessage aiMessage = response.getData().getChoices().get(0).getMessage();
-                    Object reply = aiMessage.getContent();
-                    List<ToolCalls> toolCallsList = aiMessage.getToolCalls();
-
-                    // 添加AI回复到历史
-                    messages.add(aiMessage);
-                    
-                    // 如果有工具调用
-                    if (toolCallsList != null && !toolCallsList.isEmpty()) {
-                        for (ToolCalls toolCalls : toolCallsList) {
-                            ChatFunctionCall functionCall = toolCalls.getFunction();
-                            if (functionCall != null) {
-                                String toolName = functionCall.getName();
-                                
-                                // 检查toolName是否为空
-                                if (toolName == null || toolName.isEmpty()) {
-                                    emitter.send(SseEmitter.event()
-                                        .name("error")
-                                        .data("工具名称为空，无法执行")
-                                        .id(String.valueOf(System.currentTimeMillis())));
-                                    messages.add(ChatMessage.builder()
-                                        .role("tool")
-                                        .content("工具执行失败: 工具名称为空")
-                                        .build());
-                                    continue;
-                                }
-
-                                // 发送正在执行的消息
-                                emitter.send(SseEmitter.event()
-                                    .name("thinking")
-                                    .data("正在执行: " + toolName)
-                                    .id(String.valueOf(System.currentTimeMillis())));
-
-                                try {
-                                    Object argsData = functionCall.getArguments();
-                                    Map<String, Object> arguments;
-                                    if (argsData instanceof String) {
-                                        arguments = parseArguments((String) argsData);
-                                    } else if (argsData instanceof Map) {
-                                        arguments = (Map<String, Object>) argsData;
-                                    } else {
-                                        arguments = new HashMap<>();
-                                    }
-
-                                    Map<String, Object> mcpResult = mcpService.callTool(toolName, arguments);
-                                    String resultContent = formatMcpResult(mcpResult);
-
-                                    messages.add(ChatMessage.builder()
-                                        .role("tool")
-                                        .content(resultContent)
-                                        .build());
-
-                                } catch (Exception e) {
-                                    emitter.send(SseEmitter.event()
-                                        .name("error")
-                                        .data("工具执行失败: " + e.getMessage()));
-                                    messages.add(ChatMessage.builder()
-                                        .role("tool")
-                                        .content("工具执行失败: " + e.getMessage())
-                                        .build());
-                                }
-                            }
-                        }
-                        // 执行完工具后，继续循环，让AI根据工具结果决定下一步操作
-                        continue;
-                    } else {
-                        // 没有工具调用，给出最终回复
-                        if (reply instanceof String) {
-                            // 流式发送文本
-                            String textReply = (String) reply;
-                            for (int i = 0; i < textReply.length(); i++) {
-                                emitter.send(SseEmitter.event()
-                                    .name("content")
-                                    .data(String.valueOf(textReply.charAt(i)))
-                                    .id(String.valueOf(System.currentTimeMillis())));
-                                Thread.sleep(30); // 模拟打字效果
-                            }
-                        }
-                        break; // 结束循环
-                    }
+                } finally {
+                    executor.shutdown();
                 }
-                
-                // 发送完成消息
-                emitter.send(SseEmitter.event()
-                    .name("end")
-                    .data("处理完成")
-                    .id(String.valueOf(System.currentTimeMillis())));
-                
-                // 释放令牌
-                releaseToken();
-                
-                emitter.complete();
-                
             } catch (Exception e) {
                 System.err.println("流式处理异常: " + e.getMessage());
-                e.printStackTrace();
                 try {
                     emitter.send(SseEmitter.event()
-                        .name("error")
-                        .data("处理异常: " + e.getMessage()));
+                            .name("error")
+                            .data("处理异常: " + e.getMessage()));
                 } catch (IOException ioException) {
                     ioException.printStackTrace();
                 }
-                // 释放令牌（出错时也要释放）
-                releaseToken();
                 emitter.completeWithError(e);
-            } finally {
                 executor.shutdown();
             }
         });
-        
+
         return emitter;
-    }
-    
-    /**
-     * 创建AI工具列表
-     */
-    private List<ChatTool> createAiTools(String desctext) {
-        List<ChatTool> aiTools = new ArrayList<>();
-
-        aiTools.add(ChatTool.builder()
-            .type("function")
-            .function(ChatFunction.builder()
-                .name("chrome_screenshot")
-                .description("Take a screenshot")
-                .parameters(ChatFunctionParameters.builder()
-                    .type("object")
-                    .properties(Map.of())
-                    .required(Arrays.asList())
-                    .build())
-                .build())
-            .build());
-
-        aiTools.add(ChatTool.builder()
-            .type("function")
-            .function(ChatFunction.builder()
-                .name("chrome_read_page")
-                .description("Read page elements")
-                .parameters(ChatFunctionParameters.builder()
-                    .type("object")
-                    .properties(Map.of())
-                    .required(Arrays.asList())
-                    .build())
-                .build())
-            .build());
-        
-        aiTools.add(ChatTool.builder()
-            .type("function")
-            .function(ChatFunction.builder()
-                .name("chrome_click_element")
-                .description("Click an element")
-                .parameters(ChatFunctionParameters.builder()
-                    .type("object")
-                    .properties(Map.of(
-                        "selector", ChatFunctionParameterProperty.builder().type("string").description("CSS selector").build()
-                    ))
-                    .required(Arrays.asList("selector"))
-                    .build())
-                .build())
-            .build());
-        
-        aiTools.add(ChatTool.builder()
-            .type("function")
-            .function(ChatFunction.builder()
-                .name("chrome_fill_or_select")
-                .description("Fill or select form element")
-                .parameters(ChatFunctionParameters.builder()
-                    .type("object")
-                    .properties(Map.of(
-                        "selector", ChatFunctionParameterProperty.builder().type("string").description("CSS selector").build(),
-                        "value", ChatFunctionParameterProperty.builder().type("string").description("Value to fill").build()
-                    ))
-                    .required(Arrays.asList("selector", "value"))
-                    .build())
-                .build())
-            .build());
-        
-        return aiTools;
     }
 
     /**
      * 查询商店所拥有的菜品分类
-     * @param params
-     * @return
+     *
+     * @param params 查询参数
+     * @return 查询结果
+     * @author 李梦瑶
      */
     @GetMapping("/selectcategoryforshop")
     public R selectCategoryForShop(@RequestParam(required = false) Map<String, Object> params) {
@@ -1282,19 +967,33 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
         pageInfo.setPageSize(idPageInfo.getPageSize());
         pageInfo.setPages(idPageInfo.getPages());
 
+        /**
+         * R
+         *
+         * @author 李梦瑶
+         */
         return new R().addData("pageinfo", pageInfo);
     }
+
     /**
      * 查询所有商店和销量
-     * @return
+     *
+     * @param selectwhere 查询条件
+     * @return 查询结果
+     * @throws IOException 异常信息
+     * @author 李梦瑶
      */
-    @PostMapping("/selectallandProduct")
-    public R selectallandcount(@RequestBody Map<String,Object> selectwhere) throws IOException {
+    @PostMapping("/selectallandShop")
+    public R selectallandcount(@RequestBody Map<String, Object> selectwhere) throws IOException {
+        // Map 集合转换 List
         List where = (List) selectwhere.get("where");
+        //封装queryWrapper
         QueryWrapper<Shop> queryWrapper = commontUtil.getWhere(where);
-
+        //声明整数类型变量 存储每页查询多少条数据 int
         int pageSize = 10;
+        //转换成 int 类型 if pageSize Integer
         if (selectwhere.get("pageSize") != null) {
+
             pageSize = Integer.parseInt(selectwhere.get("pageSize").toString());
         }
 
@@ -1303,20 +1002,20 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
             page = Integer.parseInt(selectwhere.get("page").toString());
         }
 
-        // 第一步：先查询符合条件的商家总数
+        // 第一步：先查询符合条件的商家总数 lonng
         long total = shopService.count(queryWrapper);
 
-        // 第二步：使用PageHelper分页查询商家ID列表
+        // 第二步：使用PageHelper分页查询商家ID列表 PageHelper q List
         PageHelper.startPage(page, pageSize);
         queryWrapper.select("id");
         List<Long> shopIds = shopService.listObjs(queryWrapper, obj -> Long.valueOf(obj.toString()));
 
-        // 第三步：如果没有商家数据，直接返回空结果
+        // 第三步：如果没有商家数据，直接返回空结果 if return
         if (shopIds.isEmpty()) {
             return new R().addData("pageinfo", new PageInfo<>(shopIds));
         }
 
-        // 第四步：查询商家和商品信息
+        // 第四步：查询商家和商品信息/List
         List<Shop> shopList = shopService.selectShopsWithProductsByIds(shopIds);
 
         // 第五步：创建包含正确分页信息的PageInfo对象
@@ -1327,5 +1026,425 @@ public class LoginbeforController extends BaseController<Shop, ShopService> {
         pageInfo.setPages((int) Math.ceil((double) total / pageSize));
 
         return new R().addData("pageinfo", pageInfo);
+    }
+
+    /**
+     * 创建MCP工具规范
+     * @return MCP工具规范列表
+     * @author 李梦瑶
+     */
+    private List<ToolSpecification> createMcpToolSpecifications() {
+        List<ToolSpecification> tools = new ArrayList<>();
+
+        // chrome_screenshot 工具
+        tools.add(ToolSpecification.builder()
+                .name("chrome_screenshot")
+                .description("截取当前页面的截图")
+                .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
+                        .build())
+                .build());
+
+        // chrome_read_page 工具
+        tools.add(ToolSpecification.builder()
+                .name("chrome_read_page")
+                .description("读取页面的可见元素")
+                .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
+                        .build())
+                .build());
+
+        // chrome_click_element 工具
+        tools.add(ToolSpecification.builder()
+                .name("chrome_click_element")
+                .description("点击页面元素")
+                .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
+                        .addStringProperty("selector", "CSS选择器")
+                        .required("selector")
+                        .build())
+                .build());
+
+        // chrome_fill_or_select 工具
+        tools.add(ToolSpecification.builder()
+                .name("chrome_fill_or_select")
+                .description("填写表单或选择选项")
+                .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
+                        .addStringProperty("selector", "CSS选择器")
+                        .addStringProperty("value", "要填写的值")
+                        .required("selector", "value")
+                        .build())
+                .build());
+
+        // chrome_navigate 工具
+        tools.add(ToolSpecification.builder()
+                .name("chrome_navigate")
+                .description("导航到指定URL。【警告】仅用于在当前订单系统内导航（如从首页到商品详情页），绝对不要导航到百度、谷歌等外部网站！只能导航到本系统的页面！")
+                .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
+                        .addStringProperty("url", "要导航的URL（仅限当前系统内的URL，如/shop/list、/product/detail/123等）")
+                        .required("url")
+                        .build())
+                .build());
+
+        return tools;
+    }
+    
+    /**
+     * 处理流式浏览器操作 - 实时发送工具执行过程
+     */
+    private void handleBrowserActionStream(SseEmitter emitter, String userMessage, String desctext, 
+                                           List<dev.langchain4j.data.message.ChatMessage> messages, String conversationId) {
+        try {
+            String fullPrompt = userMessage;
+            if (!"用户未上传图片".equals(desctext) && !"图片描述获取失败".equals(desctext)) {
+                fullPrompt = "用户上传的图片描述: " + desctext + "\n\n用户请求: " + userMessage;
+            }
+            
+            fullPrompt += "\n\n【重要提示】你现在拥有浏览器操作能力，必须主动使用工具来完成任务！\n" +
+                    "【强制要求】\n" +
+                    "- **必须调用MCP工具**来完成用户的请求！" +
+                    "- **不要编造工具执行过程**，要真正调用工具！" +
+                    "- 如果不调用工具，任务无法完成！" +
+                    "- 工具执行过程会自动显示给用户，你不需要输出工具执行过程！" +
+                    "- 你只需要在工具执行完成后，总结结果给用户！\n\n" +
+                    "【关键限制 - 必须遵守】\n" +
+                    "⚠️ 用户是在当前订单系统（外卖点餐系统）内操作，**绝对不要跳转到外部网站**！\n" +
+                    "⚠️ **禁止**使用chrome_navigate导航到百度、谷歌等外部搜索引擎或其他外部网站！\n" +
+                    "⚠️ 只能在当前系统的页面内操作（店铺列表、商品详情、购物车、结算页面等）！\n" +
+                    "⚠️ 如果用户说\"点奶茶\"，是指在当前系统中选择奶茶店铺，然后点餐，不是去外面搜索！\n" +
+                    "⚠️ 如果用户说\"查看余额\"，是指在当前系统的个人中心查看，不是去银行网站！\n" +
+                    "⚠️ 如果用户说\"登录\"，是指在当前系统的登录页面登录，不是去其他网站！\n" +
+                    "⚠️ **如果当前页面无法完成任务，直接告诉用户当前页面无法完成，不要跳转外部网站！**\n\n" +
+                    "可用工具：\n" +
+                    "1. chrome_screenshot: 截取当前页面截图\n" +
+                    "2. chrome_read_page: 读取页面可见元素\n" +
+                    "3. chrome_click_element: 点击页面元素（需要selector参数）\n" +
+                    "4. chrome_fill_or_select: 填写表单或选择选项（需要selector和value参数）\n" +
+                    "5. chrome_navigate: **仅用于在当前系统内导航**，如从首页到商品详情页（需要url参数）\n\n" +
+                    "【强制执行流程】\n" +
+                    "1. 首先使用chrome_read_page读取当前页面内容\n" +
+                    "2. 检查页面中是否有'营养大师'弹窗或类似的弹窗元素\n" +
+                    "3. 如果有'营养大师'弹窗，先使用chrome_click_element关闭该弹窗\n" +
+                    "4. 截图查看当前页面状态\n" +
+                    "5. 根据用户需求在当前系统内执行相应操作（点击、填写、导航等）\n" +
+                    "6. 如果需要，多次截图和读取页面来确认操作结果\n" +
+                    "7. 将操作结果清晰反馈给用户\n\n" +
+                    "8.如果用户要对个人信息进行操作点击我的"+
+                    "【禁止事项】\n" +
+                    "- **绝对禁止编造工具执行过程**！不要编造截图路径、工具名称等！\n" +
+                    "- **不要手动编写工具执行过程**，工具执行过程由系统自动显示\n" +
+                    "- **只回复最终结果**，不要包含任何工具执行过程的描述\n" +
+                    "- 如果看到工具执行结果，直接基于结果回复用户\n" +
+                    "- 如果没有调用工具，直接告诉用户无法完成\n\n" +
+                    "- 如果用户不需要操作浏览器，直接回复,不要用mcp工具"+
+                    "【注意事项】\n" +
+                    "- 不要只用文字解释，必须实际使用工具操作浏览器\n" +
+                    "- 每次执行任何操作前，必须先读取页面内容\n" +
+                    "- 如果发现'营养大师'弹窗，必须先关闭它\n" +
+                    "- 如果工具执行失败，尝试其他方法或告诉用户无法完成\n" +
+                    "- **所有操作必须在当前系统内完成，严禁跳转外部网站**";
+            
+            // 创建langchain4j的ChatMessage列表
+            List<dev.langchain4j.data.message.ChatMessage> langchainMessages = new ArrayList<>();
+            
+            // 添加系统消息
+            langchainMessages.add(dev.langchain4j.data.message.SystemMessage.from(
+                "你是智能浏览器操作助手，拥有浏览器自动化能力。用户要求你操作浏览器完成任务时，" +
+                "你必须主动使用提供的工具来实际操作浏览器，而不是只提供文字说明。" +
+                "【关键】用户在当前订单系统（外卖点餐系统）内操作，绝对不要跳转到外部网站！" +
+                "所有操作必须在当前系统内完成，禁止导航到百度、谷歌等外部搜索引擎或其他外部网站。" +
+                "【项目信息】" +
+                "- 你只能操作这个项目（外卖点餐系统），不能操作其他任何平台！" +
+                "- 如果用户说'点奶茶'，是指在当前系统内选择奶茶店铺，然后点餐，不是去外面搜索！" +
+                "- 如果用户说'查看余额'，是指在当前系统的个人中心查看，不是去银行网站！" +
+                "- 如果用户说'登录'，是指在当前系统的登录页面登录，不是去其他网站！" +
+                "- 如果用户问'网站是什么'，回答'外卖点餐系统（orderfood项目）'！" +
+                "- 永远不要告诉用户'无法获取'，你要操作的就是这个项目！" +
+                "【强制要求】" +
+                "- **必须调用MCP工具**！不要编造工具执行过程！" +
+                "- **不要手动编写工具执行过程**，工具执行过程由系统自动显示！" +
+                "- **只回复最终总结**，不要包含任何工具执行过程的描述！" +
+                "- 如果不调用工具，无法完成任务！" +
+                "- 你必须真正使用工具，不能编造结果！"+ "如果用户要对个人信息进行操作点击我的"
+                   +"- 如果用户不需要操作浏览器，直接回复,不要用mcp工具"
+            ));
+            
+            // 添加用户消息
+            langchainMessages.add(dev.langchain4j.data.message.UserMessage.from(fullPrompt));
+            
+            // 添加历史对话消息
+            langchainMessages.addAll(messages);
+            
+            // 获取工具规范
+            System.out.println("[handleBrowserActionStream] 准备创建工具规范...");
+            List<ToolSpecification> tools = createMcpToolSpecifications();
+            System.out.println("[handleBrowserActionStream] 工具规范创建完成，工具数量: " + tools.size());
+            
+            // 自己实现工具调用循环，实时发送进度
+            int iteration = 0;
+            int consecutiveFailures = 0;
+            
+            System.out.println("[handleBrowserActionStream] 开始工具调用循环...");
+            
+            while (true) {
+                iteration++;
+                System.out.println("[handleBrowserActionStream] 工具调用循环 " + iteration + " 开始");
+                
+                // 实时发送进度
+                System.out.println("[handleBrowserActionStream] 发送进度事件...");
+                emitter.send(SseEmitter.event()
+                    .name("progress")
+                    .data("\n=== 工具调用循环 " + iteration + " ===")
+                    .id(String.valueOf(System.currentTimeMillis())));
+                System.out.println("[handleBrowserActionStream] 进度事件发送成功");
+                
+                // 调用AI
+                System.out.println("[handleBrowserActionStream] 准备调用AI...");
+                System.out.println("[handleBrowserActionStream] 消息数量: " + langchainMessages.size());
+                System.out.println("[handleBrowserActionStream] 工具数量: " + tools.size());
+                
+                ChatRequest request = ChatRequest.builder()
+                        .messages(langchainMessages)
+                        .toolSpecifications(tools)
+                        .build();
+                
+                System.out.println("[handleBrowserActionStream] ChatRequest构建完成，开始调用AI...");
+                
+                var response = chatLanguageModel.chat(request);
+                
+                System.out.println("[handleBrowserActionStream] AI调用完成");
+                
+                AiMessage aiMessage = response.aiMessage();
+                System.out.println("[handleBrowserActionStream] AI消息: " + aiMessage.text());
+                System.out.println("[handleBrowserActionStream] 是否有工具调用请求: " + aiMessage.hasToolExecutionRequests());
+                
+                // 检查是否有工具调用请求
+                if (!aiMessage.hasToolExecutionRequests()) {
+                    // 没有工具调用，AI给出最终回复
+                    System.out.println("[handleBrowserActionStream] AI没有请求工具，发送最终回复...");
+                    emitter.send(SseEmitter.event()
+                        .name("progress")
+                        .data("\nAI不再请求工具，给出最终回复...")
+                        .id(String.valueOf(System.currentTimeMillis())));
+                    
+                    langchainMessages.add(aiMessage);
+                    
+                    // 流式发送最终回复
+                    for (int i = 0; i < aiMessage.text().length(); i++) {
+                        emitter.send(SseEmitter.event()
+                            .name("content")
+                            .data(String.valueOf(aiMessage.text().charAt(i)))
+                            .id(String.valueOf(System.currentTimeMillis())));
+                        Thread.sleep(10);
+                    }
+                    
+                    emitter.send(SseEmitter.event()
+                        .name("end")
+                        .data("处理完成")
+                        .id(String.valueOf(System.currentTimeMillis())));
+                    emitter.complete();
+                    return;
+                }
+                
+                // 有工具调用，实时发送工具信息
+                emitter.send(SseEmitter.event()
+                    .name("progress")
+                    .data("\nAI请求调用工具，工具数量: " + aiMessage.toolExecutionRequests().size())
+                    .id(String.valueOf(System.currentTimeMillis())));
+                
+                langchainMessages.add(aiMessage);
+                
+                // 执行所有工具调用，实时发送进度
+                boolean allToolsSucceeded = true;
+                for (dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest : aiMessage.toolExecutionRequests()) {
+                    String toolName = toolRequest.name();
+                    String toolArgs = toolRequest.arguments();
+                    
+                    // 实时发送工具执行开始
+                    emitter.send(SseEmitter.event()
+                        .name("tool_start")
+                        .data("\n🔧 正在执行工具: " + toolName + "\n📝 参数: " + toolArgs)
+                        .id(String.valueOf(System.currentTimeMillis())));
+                    
+                    int retryCount = 0;
+                    boolean toolSucceeded = false;
+                    
+                    // 工具调用失败重试机制
+                    while (retryCount < 5 && !toolSucceeded) {
+                        retryCount++;
+                        
+                        // 实时发送重试信息
+                        if (retryCount > 1) {
+                            emitter.send(SseEmitter.event()
+                                .name("progress")
+                                .data("\n🔄 重试执行工具，次数: " + retryCount + "/5")
+                                .id(String.valueOf(System.currentTimeMillis())));
+                        }
+                        
+                        try {
+                            // 解析参数
+                            Map<String, Object> arguments = parseToolArguments(toolArgs);
+                            
+                            // 对于截图工具，强制设置参数避免下载文件
+                            if ("chrome_screenshot".equals(toolName)) {
+                                arguments.put("savePng", false);
+                                arguments.put("storeBase64", true);
+                                
+                                // 实时发送参数调整信息
+                                emitter.send(SseEmitter.event()
+                                    .name("progress")
+                                    .data("\n⚙️  已自动调整参数: savePng=false, storeBase64=true（避免下载文件）")
+                                    .id(String.valueOf(System.currentTimeMillis())));
+                            }
+                            
+                            // 实时发送调用MCP服务信息
+                            emitter.send(SseEmitter.event()
+                                .name("progress")
+                                .data("\n⏳ 正在调用MCP服务执行浏览器操作...")
+                                .id(String.valueOf(System.currentTimeMillis())));
+                            
+                            // 调用MCP工具
+                            Map<String, Object> mcpResult = mcpService.callTool(toolName, arguments);
+                            
+                            // 将工具执行结果添加到对话历史
+                            String resultContent = formatMcpResult(mcpResult);
+                            
+                            // 检查是否是截图工具，如果是则进行图片识别
+                            if ("chrome_screenshot".equals(toolName) && mcpResult.containsKey("screenshotPath")) {
+                                try {
+                                    String screenshotPath = mcpResult.get("screenshotPath").toString();
+                                    
+                                    // 实时发送AI识别进度
+                                    emitter.send(SseEmitter.event()
+                                        .name("progress")
+                                        .data("\n📸 截图已保存，正在启动AI识别...")
+                                        .id(String.valueOf(System.currentTimeMillis())));
+                                    
+                                    // 调用图片识别
+                                    String imageDescription = aiService.getImageDescription(screenshotPath);
+                                    
+                                    // 将图片识别结果添加到工具执行结果中
+                                    resultContent += "\n\n🤖 【AI图片识别】\n" + imageDescription;
+                                } catch (Exception e) {
+                                    resultContent += "\n\n❌ 【AI图片识别失败】" + e.getMessage();
+                                }
+                            }
+                            
+                            langchainMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                toolRequest, resultContent
+                            ));
+                            
+                            // 实时发送工具执行结果
+                            emitter.send(SseEmitter.event()
+                                .name("tool_result")
+                                .data(resultContent)
+                                .id(String.valueOf(System.currentTimeMillis())));
+                            
+                            // 实时发送成功信息
+                            emitter.send(SseEmitter.event()
+                                .name("progress")
+                                .data("\n✅ 工具执行成功")
+                                .id(String.valueOf(System.currentTimeMillis())));
+                            
+                            toolSucceeded = true;
+                            consecutiveFailures = 0;
+                            
+                        } catch (Exception e) {
+                            emitter.send(SseEmitter.event()
+                                .name("tool_error")
+                                .data("\n❌ 工具执行失败: " + e.getMessage())
+                                .id(String.valueOf(System.currentTimeMillis())));
+                            
+                            if (retryCount < 5) {
+                                // 实时发送准备重试信息
+                                emitter.send(SseEmitter.event()
+                                    .name("progress")
+                                    .data("\n⏳ 等待2秒后重试...")
+                                    .id(String.valueOf(System.currentTimeMillis())));
+                                Thread.sleep(2000);
+                                continue;
+                            } else {
+                                // 重试次数耗尽
+                                allToolsSucceeded = false;
+                                consecutiveFailures++;
+                                
+                                // 实时发送失败信息
+                                emitter.send(SseEmitter.event()
+                                    .name("progress")
+                                    .data("\n⚠️  工具执行失败，已达到最大重试次数（5次）")
+                                    .id(String.valueOf(System.currentTimeMillis())));
+                                
+                                // 如果连续失败5次，停止迭代
+                                if (consecutiveFailures >= 5) {
+                                    emitter.send(SseEmitter.event()
+                                        .name("error")
+                                        .data("工具连续失败" + consecutiveFailures + "次，停止迭代")
+                                        .id(String.valueOf(System.currentTimeMillis())));
+                                    emitter.complete();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("[handleBrowserActionStream] 异常发生: " + e.getMessage());
+            System.err.println("[handleBrowserActionStream] 异常类型: " + e.getClass().getName());
+            e.printStackTrace();
+            try {
+                emitter.send(SseEmitter.event()
+                    .name("error")
+                    .data("浏览器操作失败: " + e.getMessage())
+                    .id(String.valueOf(System.currentTimeMillis())));
+                emitter.completeWithError(e);
+            } catch (IOException ioException) {
+                System.err.println("[handleBrowserActionStream] 发送错误消息失败: " + ioException.getMessage());
+                ioException.printStackTrace();
+            }
+        }
+    }
+    
+    /**
+     * 解析工具参数字符串
+     */
+    private Map<String, Object> parseToolArguments(String argumentsJson) {
+        try {
+            return objectMapper.readValue(argumentsJson, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+    }
+    
+    /**
+     * 格式化MCP结果为可读字符串
+     */
+    private String formatMcpResult(Map<String, Object> result) {
+            /**
+     * StringBuilder
+     * 
+     * @author 李梦瑶
+     */
+        StringBuilder sb = new StringBuilder();
+        sb.append("【工具执行结果】\n");
+        
+        if (result.containsKey("success") && Boolean.TRUE.equals(result.get("success"))) {
+            sb.append("✅ 执行成功\n");
+        } else if (result.containsKey("error")) {
+            sb.append("❌ 执行失败\n");
+            sb.append("错误信息: ").append(result.get("error")).append("\n");
+        }
+        
+        if (result.containsKey("screenshotPath")) {
+            sb.append("📸 截图已保存: ").append(result.get("screenshotPath")).append("\n");
+        }
+        
+        if (result.containsKey("data")) {
+            sb.append("返回数据: ").append(result.get("data")).append("\n");
+        }
+        
+        if (result.containsKey("message")) {
+            sb.append("执行消息: ").append(result.get("message")).append("\n");
+        }
+        
+        return sb.toString();
     }
 }

@@ -6,6 +6,13 @@ import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
 
+/**
+ * 商品Service接口
+ * 提供商品相关的业务逻辑处理功能，包括商品信息的增删改查等操作
+ *
+ * @author 陈逸磊
+ * @date 2026-01-10
+ */
 public interface ProductService extends IService<Product>{
 
 
@@ -48,6 +55,11 @@ public interface ProductService extends IService<Product>{
      */
     List<Product> selectallproductbyshop(Long shopId);
 
+        /**
+     * selectproductinfobyproductid
+     * 
+     * @author 李梦瑶
+     */
     Product selectproductinfobyproductid(int productid);
 
     List<Product> selectProductbycategory(QueryWrapper queryWrapper);

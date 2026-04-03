@@ -1,0 +1,1769 @@
+package org.example.orderfoodafter.service.impl;
+
+import ai.z.openapi.ZhipuAiClient;
+import ai.z.openapi.service.model.*;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import org.example.orderfoodafter.common.DefaulteProperties;
+import org.example.orderfoodafter.service.AiService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Base64;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * AI鏈嶅姟瀹炵幇绫? * 鏍规嵁鏄惁鏈夊浘鐗囪嚜鍔ㄩ€夋嫨浣跨敤鏅鸿氨AI鎴杔angchain4j
+ *
+ * @author iFlow
+ * @date 2025-03-15
+ */
+@Service
+public class AiServiceImpl implements AiService {
+
+    // 娉ㄥ叆 langchain4j 鐨?ChatLanguageModel锛堥潪娴佸紡锛?    private final ChatLanguageModel chatLanguageModel;
+
+    // 娉ㄥ叆 langchain4j 鐨?StreamingChatModel锛堟祦寮忥級
+    private final OpenAiStreamingChatModel streamingChatModel;
+
+    // 娉ㄥ叆閰嶇疆
+    @Autowired
+    private DefaulteProperties defaulteProperties;
+
+    // 鏅鸿氨AI瀹㈡埛绔?    private static final ZhipuAiClient zhipuClient = ZhipuAiClient.builder()
+            .apiKey("f298b63fa87f451889ea75c33f3ef58e.sWVWtdr2Qe4UKdtd")
+            .build();
+
+    // 鏅鸿氨AI鍥剧墖请嗗埆瀹㈡埛绔拒绝执行：    private static final ZhipuAiClient imageClient = ZhipuAiClient.builder()
+            .apiKey("8fa7068ff5a347ef876dee10824174b5.9E1gk4DIelgyj79W")
+            .build();
+/**
+ * AiServiceImpl鏂规硶
+ *
+ * @author 鏉庡悏闅? */
+
+    public AiServiceImpl(@Value("${langchain4j.open-ai.chat-model.api-key}") String apiKey,
+                         @Value("${langchain4j.open-ai.chat-model.model-name}") String modelName,
+                         @Value("${langchain4j.open-ai.chat-model.base-url}") String baseUrl,
+                         @Value("${langchain4j.open-ai.chat-model.temperature:0.0}") Double temperature,
+                         @Value("${langchain4j.open-ai.chat-model.max-tokens:2000}") Integer maxTokens) {
+        // 鍒涘缓 langchain4j 鐨?ChatLanguageModel锛堥潪娴佸紡锛?        var chatModelBuilder = OpenAiChatModel.builder()
+                .apiKey(apiKey)
+                .modelName(modelName)
+                .baseUrl(baseUrl)
+                .timeout(java.time.Duration.ofMinutes(5)); // 璁剧疆5鍒嗛挓瓒呮椂
+        
+        // 璁剧疆temperature
+        if (temperature != null) {
+            chatModelBuilder.temperature(temperature);
+        }
+        
+        // 璁剧疆maxTokens
+        if (maxTokens != null) {
+            chatModelBuilder.maxTokens(maxTokens);
+        }
+        
+        this.chatLanguageModel = chatModelBuilder.build();
+
+        // 鍒涘缓 langchain4j 鐨?StreamingChatModel锛堟祦寮忥級
+        var streamingChatModelBuilder = OpenAiStreamingChatModel.builder()
+                .apiKey(apiKey)
+                .modelName(modelName)
+                .baseUrl(baseUrl)
+                .timeout(java.time.Duration.ofMinutes(5)); // 璁剧疆5鍒嗛挓瓒呮椂
+        
+        // 璁剧疆temperature
+        if (temperature != null) {
+            streamingChatModelBuilder.temperature(temperature);
+        }
+        
+        // 璁剧疆maxTokens
+        if (maxTokens != null) {
+            streamingChatModelBuilder.maxTokens(maxTokens);
+        }
+        
+        this.streamingChatModel = streamingChatModelBuilder.build();
+        
+        System.out.println("=== AI妯″瀷鍒濆鍖?===");
+        System.out.println("妯″瀷鍚嶇О: " + modelName);
+        System.out.println("Base URL: " + baseUrl);
+        System.out.println("Temperature: " + temperature);
+        System.out.println("=====================");
+    }
+/**
+ * chat鏂规硶
+ *
+ * @author 鏉庡悏闅? */
+
+    @Override
+    public String chat(List<ChatMessage> messages, boolean hasImage, List<ChatTool> tools) throws Exception {
+        if (hasImage) {
+            // 鏈夊浘鐗囷紝浣跨敤鏅鸿氨AI锛坓lm-4.6v-flash鏀寔鍥剧墖锛?                /**
+     * chatWithZhipuAi
+     * 
+     * @author 鏉庡悏闅?     */
+            return chatWithZhipuAi(messages, tools);
+        } else {
+            // 鏃犲浘鐗囷紝浣跨敤 langchain4j锛坬wen3-coder-plus锛?            // 灏?ChatMessage 杞崲涓?langchain4j 鐨?UserMessage
+                /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+            StringBuilder textContent = new StringBuilder();
+            for (ChatMessage msg : messages) {
+                if (msg.getRole().equals("user") || msg.getRole().equals("assistant") || msg.getRole().equals("system")) {
+                    if (msg.getContent() instanceof String) {
+                        textContent.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+                    }
+                }
+            }
+                /**
+     * chatWithLangChain4j
+     * 
+     * @author 鏉庡悏闅?     */
+            return chatWithLangChain4j(List.of(dev.langchain4j.data.message.UserMessage.from(textContent.toString())));
+        }
+    }
+/**
+ * chatWithLangChain4j鏂规硶
+ *
+ * @author 鏉庡悏闅? */
+
+    @Override
+    public String chatWithLangChain4j(List<dev.langchain4j.data.message.UserMessage> messages) throws Exception {
+        if (messages.isEmpty()) {
+                /**
+     * IllegalArgumentException
+     * 
+     * @author 鏉庡悏闅?     */
+            throw new IllegalArgumentException("娑堟伅鍒楄〃涓嶈兘涓虹┖");
+        }
+
+        // 浣跨敤 langchain4j 璋冪敤AI锛屾彁鍙栨枃鏈苟璋冪敤 chat(String) 鏂规硶
+        String userText = messages.get(0).singleText();
+        return chatLanguageModel.chat(userText);
+    }
+/**
+ * chatWithLangChain4jStream鏂规硶
+ *
+ * @author 鏉庡悏闅? */
+
+    @Override
+    public void chatWithLangChain4jStream(List<UserMessage> messages, dev.langchain4j.model.chat.response.StreamingChatResponseHandler handler) throws Exception {
+        if (messages.isEmpty()) {
+                /**
+     * IllegalArgumentException
+     * 
+     * @author 鏉庡悏闅?     */
+            throw new IllegalArgumentException("娑堟伅鍒楄〃涓嶈兘涓虹┖");
+        }
+
+        // 浣跨敤 langchain4j 娴佸紡璋冪敤AI
+        String userText = messages.get(0).singleText();
+        streamingChatModel.chat(userText, handler);
+    }
+/**
+ * chatWithLangChain4jWithTools鏂规硶
+ *
+ * @author 鏉庡悏闅? */
+
+    @Override
+    public String chatWithLangChain4jWithTools(List<UserMessage> messages, List<ToolSpecification> tools) throws Exception {
+        if (messages.isEmpty()) {
+                /**
+     * IllegalArgumentException
+     * 
+     * @author 鏉庡悏闅?     */
+            throw new IllegalArgumentException("娑堟伅鍒楄〃涓嶈兘涓虹┖");
+        }
+
+        // 浣跨敤 langchain4j 璋冪敤AI锛屾敮鎸佸伐鍏?        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(messages.stream().map(msg -> (dev.langchain4j.data.message.ChatMessage) msg).toList())
+                .toolSpecifications(tools)
+                .build();
+
+        var response = chatLanguageModel.chat(chatRequest);
+        AiMessage aiMessage = response.aiMessage();
+        
+        // 妫€鏌ユ槸鍚︽湁宸ュ叿璋冪敤璇锋眰
+        if (aiMessage.hasToolExecutionRequests()) {
+            // 鏈夊伐鍏疯皟鐢紝杩斿洖宸ュ叿璋冪敤淇℃伅
+                /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+            StringBuilder toolCalls = new StringBuilder();
+            toolCalls.append("AI璇锋眰璋冪敤浠ヤ笅宸ュ叿锛歕n");
+            for (dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest : aiMessage.toolExecutionRequests()) {
+                toolCalls.append("- ").append(toolRequest.name()).append(": ").append(toolRequest.arguments()).append("\n");
+            }
+            return toolCalls.toString();
+        } else {
+            // 娌℃湁宸ュ叿璋冪敤锛岃繑鍥炴枃鏈搷搴?            return aiMessage.text();
+        }
+    }
+/**
+ * chatWithZhipuAi鏂规硶
+ *
+ * @author 鏉庡悏闅? */
+
+    @Override
+    public String chatWithZhipuAi(List<ChatMessage> messages, List<ChatTool> tools) throws Exception {
+        if (messages.isEmpty()) {
+                /**
+     * IllegalArgumentException
+     * 
+     * @author 鏉庡悏闅?     */
+            throw new IllegalArgumentException("娑堟伅鍒楄〃涓嶈兘涓虹┖");
+        }
+
+        // 鍒涘缓璇锋眰鍙傛暟
+        ChatCompletionCreateParams request;
+        if (tools != null && !tools.isEmpty()) {
+            request = ChatCompletionCreateParams.builder()
+                    .model("glm-4.6v-flash")
+                    .messages(messages)
+                    .tools(tools)
+                    .build();
+        } else {
+            request = ChatCompletionCreateParams.builder()
+                    .model("glm-4.6v-flash")
+                    .messages(messages)
+                    .build();
+        }
+
+        ChatCompletionResponse response = zhipuClient.chat().createChatCompletion(request);
+
+        if (response.isSuccess()) {
+            ChatMessage message = response.getData().getChoices().get(0).getMessage();
+            Object reply = message.getContent();
+            if (reply instanceof String) {
+                return (String) reply;
+            }
+                /**
+     * RuntimeException
+     * 
+     * @author 鏉庡悏闅?     */
+            throw new RuntimeException("鏅鸿氨AI杩斿洖鐨勬暟鎹牸寮忎笉姝ｇ‘");
+        } else {
+                /**
+     * RuntimeException
+     * 
+     * @author 鏉庡悏闅?     */
+            throw new RuntimeException("鏅鸿氨AI璋冪敤澶辫触: " + response.getMsg());
+        }
+    }
+/**
+ * chatWithZhipuAiWithResponse鏂规硶
+ *
+ * @author 鏉庡悏闅? */
+
+    @Override
+    public ChatCompletionResponse chatWithZhipuAiWithResponse(List<ChatMessage> messages, List<ChatTool> tools) throws Exception {
+        if (messages.isEmpty()) {
+                /**
+     * IllegalArgumentException
+     * 
+     * @author 鏉庡悏闅?     */
+            throw new IllegalArgumentException("娑堟伅鍒楄〃涓嶈兘涓虹┖");
+        }
+
+        // 鍒涘缓璇锋眰鍙傛暟
+        ChatCompletionCreateParams request;
+        if (tools != null && !tools.isEmpty()) {
+            request = ChatCompletionCreateParams.builder()
+                    .model("glm-4.6v-flash")
+                    .messages(messages)
+                    .tools(tools)
+                    .build();
+        } else {
+            request = ChatCompletionCreateParams.builder()
+                    .model("glm-4.6v-flash")
+                    .messages(messages)
+                    .build();
+        }
+
+        // 璋冪敤鏅鸿氨AI锛岃繑鍥炲畬鏁村搷搴?        ChatCompletionResponse response = zhipuClient.chat().createChatCompletion(request);
+
+        if (response.isSuccess()) {
+            return response;
+        } else {
+                /**
+     * RuntimeException
+     * 
+     * @author 鏉庡悏闅?     */
+            throw new RuntimeException("鏅鸿氨AI璋冪敤澶辫触: " + response.getMsg());
+        }
+    }
+/**
+ * getImageDescription鏂规硶
+ *
+ * @author 鏉庡悏闅? */
+
+    @Override
+    public String getImageDescription(String imgname) throws Exception {
+        if (imgname == null || imgname.trim().isEmpty()) {
+            return "鐢ㄦ埛鏈笂浼犲浘鐗?;
+        }
+
+        String filepath = defaulteProperties.getUploadfilepath() + imgname;
+            /**
+     * readAllBytes
+     * 
+     * @author 鏉庡悏闅?     */
+        byte[] bytes = Files.readAllBytes(new File(filepath).toPath());
+        String base64 = Base64.getEncoder().encodeToString(bytes);
+
+        ChatCompletionCreateParams request = ChatCompletionCreateParams.builder()
+                .model("glm-4.6v-flash")
+                .messages(List.of(
+                        ChatMessage.builder()
+                                .role(ChatMessageRole.USER.value())
+                                .content(List.of(
+                                        MessageContent.builder()
+                                                .type("text")
+                                                .text("绠€瑕佹弿杩颁笅杩欏紶鍥剧墖,鍙緭鍑虹畝瑕佹弿杩板悗鐨勫氨琛屼簡")
+                                                .build(),
+                                        MessageContent.builder()
+                                                .type("image_url")
+                                                .imageUrl(ImageUrl.builder()
+                                                        .url(base64)
+                                                        .build())
+                                                .build()))
+                                .build()))
+                .build();
+
+        ChatCompletionResponse response = imageClient.chat().createChatCompletion(request);
+        Object reply = null;
+        if (response.isSuccess()) {
+            ChatMessage message = response.getData().getChoices().get(0).getMessage();
+            reply = message.getContent();
+        } else {
+            System.err.println("閿欒: " + response.getMsg());
+        }
+
+        if (reply == null) {
+            return "鍥剧墖鎻忚堪鑾峰彇澶辫触";
+        }
+
+        return reply.toString();
+    }
+
+    @Override
+        /**
+     * executeToolLoop
+     * 
+     * @author 鏉庡悏闅?     */
+    public String executeToolLoop(List<dev.langchain4j.data.message.ChatMessage> messages,
+                                       List<ToolSpecification> tools,
+                                       org.example.orderfoodafter.service.McpService mcpService,
+                                       int maxRetries) {
+                // 淇濆瓨宸ュ叿鎵ц杩囩▼鐨勫垪琛紝鐢ㄤ簬杩斿洖缁欏墠绔樉绀拒绝执行：                List<String> toolExecutionProcess = new ArrayList<>();
+    
+                try {
+                    int iteration = 0;
+                    // 娣诲姞鏈€澶ц凯浠ｆ鏁伴檺鍒讹紝闃叉鏃犻檺寰幆
+                    final int MAX_ITERATIONS = 15; // 鏈€澶氭墽琛?5杞惊鐜?                    int consecutiveFailures = 0; // 杩炵画澶辫触娆℃暟
+                    // 閲嶅鎿嶄綔妫€娴?                    int duplicateOperationCount = 0;
+                    String lastToolName = "";
+                    String lastToolArgs = "";        // 娣诲姞涓枃绯荤粺鎻愮ず锛岀‘淇滱I鑳藉鐞嗚В涓枃鎸囦护骞舵纭墽琛屽伐鍏疯皟鐢?        List<dev.langchain4j.data.message.ChatMessage> enhancedMessages = new ArrayList<>();
+        enhancedenhancedMessages.add(new dev.langchain4j.data.message.SystemMessage(
+            "銆愰噸瑕併€戜綘鏄尽鑶虫埧鐐归绯荤粺鐨勬櫤鑳藉姪鎵嬶紝浣跨敤MCP宸ュ叿鎺у埗娴忚鍣ㄥ畬鎴愪换鍔°€俓n\n" +
+            "銆愬叧閿鍒欍€慭n" +
+            "1. 浠诲姟瀹屾垚鍚庯紝绔嬪嵆鍋滄璋冪敤宸ュ叿锛岀敤涓枃缁欑敤鎴锋€荤粨鎵ц缁撴灉\n" +
+            "2. 涓嶈閲嶅鎵ц鐩稿悓鐨勬搷浣滐紙濡傞噸澶嶇偣鍑诲悓涓€鍏冪礌锛塡n" +
+            "3. 姣忔宸ュ叿璋冪敤鍚庯紝鏍规嵁缁撴灉鍐冲畾涓嬩竴姝ワ紝鑰屼笉鏄満姊板湴鎵ц鍥哄畾娴佺▼\n" +
+            "4. 濡傛灉閬囧埌椤甸潰鍙樺寲鎴栨搷浣滄棤鏁堬紝灏濊瘯鍏朵粬鏂规硶\n" +
+            "5. 鏈€澶氭墽琛?0-15娆″伐鍏疯皟鐢紝涔嬪悗蹇呴』缁欏嚭鏈€缁堢粨鏋淺n\n" +
+            "銆愪綍鏃跺仠姝㈠伐鍏疯皟鐢ㄣ€慭n" +
+            "- 鐢ㄦ埛璇锋眰宸叉弧瓒筹紙濡傚晢鍝佸凡娣诲姞鍒拌喘鐗╄溅銆佽鍗曞凡鍒涘缓绛夛級\n" +
+            "- 椤甸潰宸茬粡鍒拌揪鐩爣鐘舵€侊紙濡傝喘鐗╄溅椤甸潰銆佽鍗曠‘璁ら〉闈級\n" +
+            "- 杩炵画3娆℃墽琛岀浉鍚屾搷浣滀笖椤甸潰鏃犲彉鍖朶n" +
+            "- 鎿嶄綔澶辫触2娆′互涓奬n" +
+            "- 宸叉墽琛?0娆′互涓婂伐鍏疯皟鐢╘n\n" +
+            "銆愬彲鐢ㄥ伐鍏枫€慭n" +
+            "- chrome_read_page锛氳鍙栭〉闈㈠唴瀹癸紝浜嗚В褰撳墠鐘舵€乗n" +
+            "- chrome_click_element锛氱偣鍑婚〉闈㈠厓绱燶n" +
+            "- chrome_computer锛氭洿鐏垫椿鐨勯紶鏍囬敭鐩樻搷浣淺n" +
+            "- chrome_navigate锛氬鑸埌鎸囧畾URL\n\n" +
+            "銆愯浣忋€戝畬鎴愪换鍔″悗鍋滄宸ュ叿璋冪敤锛岀粰鍑烘渶缁堢粨鏋滐紒"
+        ));
+        enhancedMessages.addAll(messages);
+        
+        while (true) {
+            iteration++;
+            System.out.println("=== 宸ュ叿璋冪敤寰幆 " + iteration + " ===");
+            
+            // 妫€鏌ユ槸鍚﹁揪鍒版渶澶ц凯浠ｆ鏁?            if (iteration > MAX_ITERATIONS) {
+                System.out.println("宸茶揪鍒版渶澶ц凯浠ｆ鏁?" + MAX_ITERATIONS + ")锛屽己鍒跺仠姝㈠惊鐜?);
+                
+                // 璁〢I鍩轰簬褰撳墠鐘舵€佺粰鍑虹粨鏋?                try {
+                    ChatRequest finalRequest = ChatRequest.builder()
+                            .messages(enhancedMessages)
+                            .build();
+                    
+                    var finalResponse = chatLanguageModel.chat(finalRequest);
+                    AiMessage finalAiMessage = finalResponse.aiMessage();
+                    
+                    // 鍚堝苟宸ュ叿鎵ц杩囩▼鍜孉I鏈€缁堝洖澶拒绝执行：                    StringBuilder finalResult = new StringBuilder();
+                    if (!toolExecutionProcess.isEmpty()) {
+                        finalResult.append("【工具执行过程】\n");
+                        for (String process : toolExecutionProcess) {
+                            finalResult.append(process).append("\n");
+                        }
+                        finalResult.append("\n");
+                    }
+                    finalResult.append("銆愬凡杈惧埌鏈€澶ц凯浠ｆ鏁帮紝AI鍥炲銆慭n").append(finalAiMessage.text());
+                    
+                    return finalResult.toString();
+                } catch (Exception ex) {
+                    System.err.println("获取AI最终结果失败? " + ex.getMessage());
+                    return "宸ュ叿璋冪敤娆℃暟杩囧锛屽凡鍋滄鎿嶄綔銆?;
+                }
+            }
+            
+            // 璋冪敤AI锛堢洿鎺ヤ娇鐢╡nhancedMessages锛孡angChain4j浼氳嚜鍔ㄥ鐞員oolExecutionResultMessage锛?            ChatRequest request = ChatRequest.builder()
+                    .messages(enhancedMessages)
+                    .toolSpecifications(tools)
+                    .build();
+            
+            AiMessage aiMessage = null;
+            try {
+                System.out.println("=== AI璋冪敤 ===");
+                System.out.println("宸ュ叿鏁伴噺: " + (tools != null ? tools.size() : 0));
+                if (tools != null && !tools.isEmpty()) {
+                    System.out.println("宸ュ叿鍒楄〃:");
+                    for (ToolSpecification tool : tools) {
+                        System.out.println("  - 宸ュ叿鍚嶇О: " + tool.name());
+                        System.out.println("    宸ュ叿鎻忚堪: " + tool.description());
+                        System.out.println("    鍙傛暟瀹氫箟: " + (tool.parameters() != null ? tool.parameters().toString() : "鏃?));
+                    }
+                } else {
+                    System.out.println("璀﹀憡: 宸ュ叿鍒楄〃涓虹┖锛?);
+                }
+                System.out.println("娑堟伅鏁伴噺: " + enhancedMessages.size());
+                System.out.println("ChatRequest宸ュ叿瑙勮寖鏁伴噺: " + (request.toolSpecifications() != null ? request.toolSpecifications().size() : 0));
+                System.out.println("=== 璇︾粏娑堟伅鍒楄〃 ===");
+                for (int i = 0; i < enhancedMessages.size(); i++) {
+                    dev.langchain4j.data.message.ChatMessage msg = enhancedMessages.get(i);
+                    System.out.println("娑堟伅 #" + i + ": " + msg.getClass().getSimpleName());
+                    if (msg instanceof dev.langchain4j.data.message.ToolExecutionResultMessage) {
+                        dev.langchain4j.data.message.ToolExecutionResultMessage toolMsg = 
+                            (dev.langchain4j.data.message.ToolExecutionResultMessage) msg;
+                        System.out.println("  宸ュ叿鍚嶇О: " + toolMsg.toolName());
+                        System.out.println("  宸ュ叿缁撴灉(鍓?00瀛楃): " + toolMsg.text().substring(0, Math.min(100, toolMsg.text().length())));
+                    }
+                }
+                System.out.println("===================");
+                
+                var response = chatLanguageModel.chat(request);
+                aiMessage = response.aiMessage();
+                
+                System.out.println("AI杩斿洖娑堟伅绫诲瀷: " + aiMessage.getClass().getName());
+                System.out.println("AI鏄惁鏈夊伐鍏疯皟鐢ㄨ姹? " + aiMessage.hasToolExecutionRequests());
+                System.out.println("AI瀹屾暣鍥炲鍐呭: " + aiMessage.text());
+                if (aiMessage.hasToolExecutionRequests()) {
+                    System.out.println("宸ュ叿璋冪敤璇锋眰鏁伴噺: " + aiMessage.toolExecutionRequests().size());
+                    for (dev.langchain4j.agent.tool.ToolExecutionRequest toolReq : aiMessage.toolExecutionRequests()) {
+                        System.out.println("  璇锋眰宸ュ叿: " + toolReq.name());
+                        System.out.println("  宸ュ叿鍙傛暟: " + toolReq.arguments());
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("AI璋冪敤澶辫触: " + e.getMessage());
+                e.printStackTrace();
+                // AI璋冪敤澶辫触锛屽鏋滄湁宸ュ叿鎵ц杩囩▼锛岃繑鍥炲伐鍏锋墽琛岃繃绋拒绝执行：                if (!toolExecutionProcess.isEmpty()) {
+                    System.out.println("AI璋冪敤澶辫触锛岃繑鍥炲伐鍏锋墽琛岃繃绋?);
+                        /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+                    StringBuilder finalResult = new StringBuilder();
+                    finalResult.append("【工具执行过程】\n");
+                    for (String process : toolExecutionProcess) {
+                        finalResult.append(process).append("\n");
+                    }
+                    finalResult.append("\n銆愮姸鎬併€慭nAI澶勭悊瀹屾垚");
+                    return finalResult.toString();
+                } else {
+                    // 娌℃湁宸ュ叿鎵ц杩囩▼锛岃繑鍥炵畝鍗曠殑鎴愬姛娑堟伅
+                    return "鎿嶄綔瀹屾垚";
+                }
+            }
+            
+            // 妫€鏌ユ槸鍚︽湁宸ュ叿璋冪敤璇锋眰
+            if (!aiMessage.hasToolExecutionRequests()) {
+                // 娌℃湁宸ュ叿璋冪敤锛孉I缁欏嚭鏈€缁堝洖澶?                System.out.println("AI缁欏嚭鏈€缁堝洖澶嶏紝缁撴潫寰幆");
+                enhancedenhancedMessages.add(aiMessage);
+                
+                // 鍚堝苟宸ュ叿鎵ц杩囩▼鍜孉I鏈€缁堝洖澶拒绝执行：                    /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+                StringBuilder finalResult = new StringBuilder();
+                if (!toolExecutionProcess.isEmpty()) {
+                    finalResult.append("【工具执行过程】\n");
+                    for (String process : toolExecutionProcess) {
+                        finalResult.append(process).append("\n");
+                    }
+                    finalResult.append("\n");
+                }
+                finalResult.append("銆怉I鍥炲銆慭n").append(aiMessage.text());
+                
+                return finalResult.toString();
+            }
+            
+            // 鏈夊伐鍏疯皟鐢紝鎵ц宸ュ叿
+            System.out.println("AI请求调用工具，工具数量: ? " + aiMessage.toolExecutionRequests().size());
+            enhancedenhancedMessages.add(aiMessage);
+            
+            // 鎵ц鎵€鏈夊伐鍏疯皟鐢拒绝执行：            boolean allToolsSucceeded = true;
+            for (dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest : aiMessage.toolExecutionRequests()) {
+                String toolName = toolRequest.name();
+                String toolArgs = toolRequest.arguments();
+                
+                // 检测重复操作?                if (toolName.equals(lastToolName) && toolArgs.equals(lastToolArgs)) {
+                    duplicateOperationCount++;
+                    System.out.println("妫€娴嬪埌閲嶅鎿嶄綔: " + toolName + " (閲嶅娆℃暟: " + duplicateOperationCount + ")");
+                    
+                    if (duplicateOperationCount >= 3) {
+                        System.out.println("杩炵画閲嶅鎿嶄綔3娆★紝寮哄埗鍋滄");
+                        
+                        String errorMsg = "鉂拒绝执行：妫€娴嬪埌杩炵画閲嶅鎿嶄綔3娆★紝请峰皾请曞叾浠栨柟娉曘€傞噸澶嶇殑鎿嶄綔: " + toolName + ", 鍙傛暟: " + toolArgs;
+                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                            toolRequest, errorMsg
+                        ));
+                        
+                        // 璁〢I鍩轰簬褰撳墠鐘舵€佺粰鍑虹粨鏋?                        try {
+                            ChatRequest finalRequest = ChatRequest.builder()
+                                    .messages(messages)
+                                    .build();
+                            
+                            var finalResponse = chatLanguageModel.chat(finalRequest);
+                            AiMessage finalAiMessage = finalResponse.aiMessage();
+                            
+                            StringBuilder finalResult = new StringBuilder();
+                            if (!toolExecutionProcess.isEmpty()) {
+                                finalResult.append("【工具执行过程】\n");
+                                for (String process : toolExecutionProcess) {
+                                    finalResult.append(process).append("\n");
+                                }
+                                finalResult.append("\n");
+                            }
+                            finalResult.append("銆愭娴嬪埌閲嶅鎿嶄綔锛孉I鍥炲銆慭n").append(finalAiMessage.text());
+                            
+                            return finalResult.toString();
+                        } catch (Exception ex) {
+                            System.err.println("获取AI最终结果失败? " + ex.getMessage());
+                            return "妫€娴嬪埌閲嶅鎿嶄綔锛屽凡鍋滄鎿嶄綔銆?;
+                        }
+                    }
+                } else {
+                    // 鎿嶄綔涓嶅悓锛岄噸缃噸澶嶈鏁?                    duplicateOperationCount = 0;
+                    lastToolName = toolName;
+                    lastToolArgs = toolArgs;
+                }
+                
+                System.out.println("\n【工具调用】执行工具: ? " + toolName + ", 鍙傛暟: " + toolArgs);
+                
+                int retryCount = 0;
+                boolean toolSucceeded = false;
+                
+                // 工具调用失败重试机制
+                while (retryCount < maxRetries && !toolSucceeded) {
+                    retryCount++;
+                    
+                        /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+                    StringBuilder executionLog = new StringBuilder();
+                    executionLog.append("\n馃敡 姝ｅ湪鎵ц宸ュ叿: ").append(toolName).append("\n");
+                    executionLog.append("馃摑 鍙傛暟: ").append(toolArgs).append("\n");
+                    executionLog.append("馃攧 閲嶈瘯娆℃暟: ").append(retryCount).append("/").append(maxRetries).append("\n");
+                    
+                    try {
+                                            // 瑙ｆ瀽鍙傛暟
+                                            Map<String, Object> arguments = parseToolArguments(toolArgs);
+                    
+                                            // 瀵逛簬鎴浘宸ュ叿锛屽己鍒惰缃弬鏁伴伩鍏嶄笅杞芥枃浠?                                            if ("chrome_screenshot".equals(toolName)) {
+                                                arguments.put("savePng", false);
+                                                arguments.put("storeBase64", true);
+                                                executionLog.append("鈿欙笍  宸茶嚜鍔ㄨ皟鏁村弬鏁? savePng=false, storeBase64=true锛堥伩鍏嶄笅杞芥枃浠讹級\n");
+                                            }
+                    
+                                            // 銆愰噸瑕併€戞娴媠elector鍙傛暟鏄惁鍖呭惈ref鎴栧潗鏍囷紝濡傛灉鏈夊氨鎷掔粷鎵ц
+                                            if ("chrome_click_element".equals(toolName) || "chrome_fill_or_select".equals(toolName)) {
+                                                Object selectorObj = arguments.get("selector");
+                                                if (selectorObj != null) {
+                                                    String selectorStr = selectorObj.toString();
+                                                    
+                                                    // 妫€娴媟ef
+                                                    if (selectorStr.contains("[ref=")) {
+                                                        String errorMsg = "鉂拒绝执行：鎷掔粷鎵ц锛歴elector鍙傛暟涓寘鍚簡ref锛乺ef鏄疢CP宸ュ叿鐨勫唴閮ㄥ紩鐢↖D锛屼笉鏄疕TML鍏冪礌鐨勫睘鎬с€拒绝执行：;
+                                                        errorMsg += "请锋牴鎹厓绱犵殑瀹為檯HTML灞炴€э紙如果俢lass銆乮d銆乼ext銆乼ype锛夋潵鏋勫缓selector銆拒绝执行：;
+                                                        errorMsg += "例如嬪锛歿\"selector\": \"button.close\"} 鎴拒绝执行：{\"selector\": \"#button-id\"}";
+                                                        executionLog.append(errorMsg).append("\n");
+                                                        System.out.println(errorMsg);
+                                                        
+                                                        // 銆愪慨澶嶃€戜娇鐢═oolExecutionResultMessage锛屼繚鎸佹秷鎭被鍨嬩竴鑷?                                                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                                            toolRequest, errorMsg
+                                                        ));
+                                                        
+                                                        allToolsSucceeded = false;
+                                                        consecutiveFailures++;
+                                                        toolSucceeded = false;
+                                                        continue; // 璺宠繃杩欐鎵ц锛岃AI閲嶆柊灏濊瘯
+                                                    }
+                                                    
+                                                    // 检测坐标属性                                                    if (selectorStr.matches(".*\\[\\s*(x|y|x0|y0|x1|y1)\\s*=") || 
+                                                        selectorStr.matches(".*\\[x=.*\\].*\\[y=.*\\]") ||
+                                                        selectorStr.matches(".*\\[x0=.*\\].*\\[y0=.*\\]") ||
+                                                        selectorStr.matches(".*\\[x1=.*\\].*\\[y1=.*\\]")) {
+                                                        String errorMsg = "❌ 拒绝执行鎵ц锛歴elector参数涓寘鍚簡坐标属性（xx、y、x0、y0、x1、y1）！夛紒杩欎簺鏄疢CP宸ュ叿杩斿洖鐨勫潗鏍囦俊鎭紝涓嶆槸HTML鍏冪礌鐨勫睘鎬с€拒绝执行：;
+                                                        errorMsg += "请锋牴鎹厓绱犵殑瀹為檯HTML灞炴€э紙如果俢lass銆乮d銆乼ext銆乼ype锛夋潵鏋勫缓selector銆拒绝执行：;
+                                                        errorMsg += "例如嬪锛歿\"selector\": \"button.close\"} 鎴拒绝执行：{\"selector\": \"#button-id\"}";
+                                                        errorMsg += "如果傛灉闇€瑕佹牴鎹厓绱犲畾浣嶏紝请蜂娇鐢╟hrome_computer鐨刢oordinates参数锛岃€屼笉鏄痵elector参数锛拒绝执行：;
+                                                        executionLog.append(errorMsg).append("\n");
+                                                        System.out.println(errorMsg);
+                                                        
+                                                        // 杩斿洖閿欒淇℃伅缁橝I锛岃瀹冮噸鏂伴€夋嫨姝ｇ‘鐨剆elector
+                                                        String errorResult = executionLog.toString();
+                                                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                                            toolRequest, errorResult
+                                                        ));
+                                                        
+                                                        allToolsSucceeded = false;
+                                                        consecutiveFailures++;
+                                                        toolSucceeded = false;
+                                                        continue; // 璺宠繃杩欐鎵ц锛岃AI閲嶆柊灏濊瘯
+                                                    }
+                                                }
+                                            }
+                    
+                                            executionLog.append("鈴?姝ｅ湪璋冪敤MCP鏈嶅姟...\n");
+                    
+                                            // 璋冪敤MCP宸ュ叿
+                                            Map<String, Object> mcpResult = mcpService.callTool(toolName, arguments);
+                                            System.out.println("宸ュ叿鎵ц鍘熷缁撴灉: " + mcpResult);
+                        
+                        // 浣跨敤缁熶竴鐨勬柟娉曞鐞嗗伐鍏风粨鏋滐紙绉婚櫎ref瀛楁锛岃繑鍥炵函鍑€缁撴灉锛?                        String screenshotPath = mcpResult.containsKey("screenshotPath") ? 
+                            mcpResult.get("screenshotPath").toString() : null;
+                        String resultContent = cleanToolResult(mcpResult, toolName, screenshotPath);
+                        System.out.println("宸ュ叿鎵ц缁撴灉(宸茬Щ闄ef): " + resultContent.substring(0, Math.min(200, resultContent.length())));
+                        
+                        // 妫€鏌ユ槸鍚︽槸鎴浘宸ュ叿锛屽鏋滄槸鍒欒繘琛屽浘鐗囪瘑鍒?                        if ("chrome_screenshot".equals(toolName) && screenshotPath != null) {
+                            try {
+                                executionLog.append("馃摳 鎴浘宸蹭繚瀛橈紝姝ｅ湪鍚姩AI璇嗗埆...\n");
+                                System.out.println("妫€娴嬪埌鎴浘锛屽紑濮嬭繘琛屽浘鐗囪瘑鍒? " + screenshotPath);
+                                
+                                // 璋冪敤鍥剧墖璇嗗埆
+                                String imageDescription = getImageDescription(screenshotPath);
+                                System.out.println("鍥剧墖璇嗗埆缁撴灉: " + imageDescription);
+                                
+                                // 灏嗗浘鐗囪瘑鍒粨鏋滄坊鍔犲埌宸ュ叿鎵ц缁撴灉涓拒绝执行：                                resultContent += "\n\n馃 銆怉I鍥剧墖请嗗埆銆慭n" + imageDescription;
+                                executionLog.append("鉁拒绝执行：AI请嗗埆瀹屾垚\n");
+                            } catch (Exception e) {
+                                System.err.println("鍥剧墖璇嗗埆澶辫触: " + e.getMessage());
+                                resultContent += "\n\n鉂拒绝执行：銆怉I鍥剧墖请嗗埆澶辫触銆拒绝执行： + e.getMessage();
+                                executionLog.append("鉂拒绝执行：AI请嗗埆澶辫触: ").append(e.getMessage()).append("\n");
+                            }
+                        }
+                        
+                        // 銆愬叧閿€戝彧娣诲姞绾噣鐨勫伐鍏风粨鏋滐紝涓嶅寘鍚墽琛屾棩蹇?                        // 浣跨敤ToolExecutionResultMessage锛岀‘淇滱I鑳芥纭悊瑙ｅ伐鍏锋墽琛岀粨鏋?                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                            toolRequest, resultContent
+                        ));
+                        
+                        // 灏嗘墽琛岃繃绋嬩繚瀛樺埌鍒楄〃涓紝鐢ㄤ簬杩斿洖缁欏墠绔樉绀?                        String logForDisplay = executionLog.toString() + "\n" + resultContent;
+                        toolExecutionProcess.add("馃敡 鎵ц宸ュ叿: " + toolName + "\n" + logForDisplay);
+                        
+                        executionLog.append("鉁拒绝执行：宸ュ叿鎵ц鎴愬姛\n");
+                        toolSucceeded = true;
+                        consecutiveFailures = 0; // 閲嶇疆杩炵画澶辫触璁℃暟
+                        
+                    } catch (Exception e) {
+                        executionLog.append("鉂拒绝执行：宸ュ叿鎵ц澶辫触: ").append(e.getMessage()).append("\n");
+                        System.err.println("宸ュ叿鎵ц澶辫触 (閲嶈瘯 " + retryCount + "/" + maxRetries + "): " + e.getMessage());
+                        
+                        if (retryCount < maxRetries) {
+                            // 杩樻湁閲嶈瘯鏈轰細锛岀户缁噸请拒绝执行：                            executionLog.append("鈴拒绝执行：绛夊緟閲嶈瘯...\n");
+                            continue;
+                        } else {
+                            // 閲嶈瘯娆℃暟鐢ㄥ畬锛岃褰曞け璐?                            allToolsSucceeded = false;
+                            consecutiveFailures++;
+                            executionLog.append("鈿狅笍  宸茶揪鍒版渶澶ч噸璇曟鏁帮紝鍋滄閲嶈瘯\n");
+                            
+                            String errorMessage = executionLog.toString();
+                            enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                toolRequest, errorMessage
+                            ));
+                            
+                            // 灏嗗け璐ヨ繃绋嬩篃淇濆瓨鍒板垪琛ㄤ腑
+                            toolExecutionProcess.add("鉂拒绝执行：宸ュ叿鎵ц澶辫触: " + toolName + "\n" + errorMessage);
+                            
+                            System.out.println("杩炵画澶辫触娆℃暟: " + consecutiveFailures + "娆?);
+                            
+                            // 妫€鏌ユ槸鍚﹁揪鍒拌繛缁け璐ユ鏁?                            if (consecutiveFailures >= 5) {
+                                System.out.println("宸ュ叿杩炵画澶辫触" + consecutiveFailures + "娆★紝鍋滄杩唬");
+                                
+                                // 璁〢I鍩轰簬褰撳墠鐘舵€佺粰鍑虹粨鏋?                                try {
+                                    ChatRequest finalRequest = ChatRequest.builder()
+                                            .messages(messages)
+                                            .build();
+                                    
+                                    var finalResponse = chatLanguageModel.chat(finalRequest);
+                                    AiMessage finalAiMessage = finalResponse.aiMessage();
+                                    enhancedMessages.add(finalAiMessage);
+                                    
+                                    // 鍚堝苟宸ュ叿鎵ц杩囩▼鍜孉I鏈€缁堝洖澶拒绝执行：                                        /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+                                    StringBuilder finalResult = new StringBuilder();
+                                    if (!toolExecutionProcess.isEmpty()) {
+                                        finalResult.append("【工具执行过程】\n");
+                                        for (String process : toolExecutionProcess) {
+                                            finalResult.append(process).append("\n");
+                                        }
+                                        finalResult.append("\n");
+                                    }
+                                    finalResult.append("銆怉I鍥炲銆慭n").append(finalAiMessage.text());
+                                    
+                                    return finalResult.toString();
+                                } catch (Exception ex) {
+                                    System.err.println("获取AI最终结果失败? " + ex.getMessage());
+                                    // 濡傛灉AI璋冪敤澶辫触锛岃繑鍥炲熀浜庡凡鏈夊璇濆巻鍙茬殑缁撴灉
+                                    for (int i = messages.size() - 1; i >= 0; i--) {
+                                        dev.langchain4j.data.message.ChatMessage msg = messages.get(i);
+                                        if (msg instanceof dev.langchain4j.data.message.AiMessage) {
+                                                /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+                                            StringBuilder finalResult = new StringBuilder();
+                                            if (!toolExecutionProcess.isEmpty()) {
+                                                finalResult.append("【工具执行过程】\n");
+                                                for (String process : toolExecutionProcess) {
+                                                    finalResult.append(process).append("\n");
+                                                }
+                                                finalResult.append("\n");
+                                            }
+                                            finalResult.append("銆怉I鍥炲銆慭n").append(((dev.langchain4j.data.message.AiMessage) msg).text());
+                                            
+                                            return finalResult.toString();
+                                        }
+                                    }
+                                    return "宸ュ叿鎵ц澶辫触" + maxRetries + "娆★紝鏃犳硶瀹屾垚鎿嶄綔銆拒绝执行：;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 闄愬埗瀵硅瘽鍘嗗彶闀垮害
+            if (messages.size() > 20) {
+                messages = messages.subList(messages.size() - 20, messages.size());
+            }
+            
+            // 妫€鏌ユ槸鍚︽墍鏈夊伐鍏烽兘澶辫触浜?            if (!allToolsSucceeded) {
+                System.out.println("宸ュ叿鎵ц澶辫触锛岃AI浣跨敤鍏朵粬鏂规");
+                // 鍦ㄤ笅涓€杞皟鐢ㄤ腑涓嶆彁渚涘伐鍏凤紝璁〢I浣跨敤鍏朵粬鏂规
+                tools = null;
+            }
+        } // while寰幆缁撴潫
+        } // try鍧楃粨鏉?        catch (Exception e) {
+            System.err.println("executeToolLoop鎵ц寮傚父: " + e.getMessage());
+            e.printStackTrace();
+            // 鍗充娇鍙戠敓寮傚父锛屼篃灏濊瘯杩斿洖宸ュ叿鎵ц杩囩▼
+            if (toolExecutionProcess != null && !toolExecutionProcess.isEmpty()) {
+                    /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+                StringBuilder finalResult = new StringBuilder();
+                finalResult.append("【工具执行过程】\n");
+                for (String process : toolExecutionProcess) {
+                    finalResult.append(process).append("\n");
+                }
+                finalResult.append("\n銆愮姸鎬併€慭n鎿嶄綔瀹屾垚");
+                return finalResult.toString();
+            }
+            // 娌℃湁宸ュ叿鎵ц杩囩▼锛岃繑鍥炵畝鍗曠殑鎴愬姛娑堟伅
+            return "鎿嶄綔瀹屾垚";
+        }
+    }
+
+    @Override
+        /**
+     * executeToolLoopWithSSE
+     *
+     * @author 鏉庡悏闅?     */
+    public void executeToolLoopWithSSE(SseEmitter emitter, String message,
+                                        List<ToolSpecification> tools,
+                                        org.example.orderfoodafter.service.McpService mcpService,
+                                        int maxRetries) throws Exception {
+        // 瀹夊叏鐨凷SE鍙戦€佹柟娉?        java.util.function.BiConsumer<String, String> safeSend = (eventName, data) -> {
+            try {
+                emitter.send(SseEmitter.event().name(eventName).data(data));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && (errorMsg.contains("宸插缓绔嬬殑杩炴帴") ||
+                    errorMsg.contains("Broken pipe") ||
+                    errorMsg.contains("Connection reset") ||
+                    errorMsg.contains("ResponseBodyEmitter has already completed") ||
+                    errorMsg.contains("already completed"))) {
+                    System.out.println("SSE鍙戦€佸け璐ワ紝杩炴帴宸叉柇寮€鎴杄mitter宸插畬鎴愶紝浜嬩欢: " + eventName);
+                    // 涓嶆姏鍑哄紓甯革紝缁х画鎵ц
+                } else {
+                    System.err.println("SSE鍙戦€佸け璐ワ紝浜嬩欢: " + eventName + ", 閿欒: " + e.getMessage());
+                }
+            }
+        };
+
+        try {
+            // 鏋勫缓瀵硅瘽娑堟伅
+            List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
+            enhancedMessages.add(new dev.langchain4j.data.message.SystemMessage(
+                "銆愰噸瑕併€戜綘鏄尽鑶虫埧鐐归绯荤粺鐨勬櫤鑳藉姪鎵嬶紝浣跨敤MCP宸ュ叿鎺у埗娴忚鍣ㄥ畬鎴愪换鍔°€俓n\n" +
+                "銆愬叧閿鍒欍€慭n" +
+                "1. 浠诲姟瀹屾垚鍚庯紝绔嬪嵆鍋滄璋冪敤宸ュ叿锛岀敤涓枃缁欑敤鎴锋€荤粨鎵ц缁撴灉\n" +
+                "2. 涓嶈閲嶅鎵ц鐩稿悓鐨勬搷浣滐紙濡傞噸澶嶇偣鍑诲悓涓€鍏冪礌锛塡n" +
+                "3. 姣忔宸ュ叿璋冪敤鍚庯紝鏍规嵁缁撴灉鍐冲畾涓嬩竴姝ワ紝鑰屼笉鏄満姊板湴鎵ц鍥哄畾娴佺▼\n" +
+                "4. 濡傛灉閬囧埌椤甸潰鍙樺寲鎴栨搷浣滄棤鏁堬紝灏濊瘯鍏朵粬鏂规硶\n" +
+                "5. 鏈€澶氭墽琛?0-15娆″伐鍏疯皟鐢紝涔嬪悗蹇呴』缁欏嚭鏈€缁堢粨鏋淺n\n" +
+                "銆愪綍鏃跺仠姝㈠伐鍏疯皟鐢ㄣ€慭n" +
+                "- 鐢ㄦ埛璇锋眰宸叉弧瓒筹紙濡傚晢鍝佸凡娣诲姞鍒拌喘鐗╄溅銆佽鍗曞凡鍒涘缓绛夛級\n" +
+                "- 椤甸潰宸茬粡鍒拌揪鐩爣鐘舵€侊紙濡傝喘鐗╄溅椤甸潰銆佽鍗曠‘璁ら〉闈級\n" +
+                "- 杩炵画3娆℃墽琛岀浉鍚屾搷浣滀笖椤甸潰鏃犲彉鍖朶n" +
+                "- 鎿嶄綔澶辫触2娆′互涓奬n" +
+                "- 宸叉墽琛?0娆′互涓婂伐鍏疯皟鐢╘n\n" +
+                "銆愬彲鐢ㄥ伐鍏枫€慭n" +
+                "- chrome_read_page锛氳鍙栭〉闈㈠唴瀹癸紝浜嗚В褰撳墠鐘舵€乗n" +
+                "- chrome_click_element锛氱偣鍑婚〉闈㈠厓绱燶n" +
+                "- chrome_computer锛氭洿鐏垫椿鐨勯紶鏍囬敭鐩樻搷浣淺n" +
+                "- chrome_navigate锛氬鑸埌鎸囧畾URL\n\n" +
+                "銆愯浣忋€戝畬鎴愪换鍔″悗鍋滄宸ュ叿璋冪敤锛岀粰鍑烘渶缁堢粨鏋滐紒"
+            ));
+            enhancedMessages.add(dev.langchain4j.data.message.UserMessage.from(message));
+
+            int iteration = 0;
+            boolean allToolsSucceeded = true;
+            int consecutiveFailures = 0; // 杩炵画澶辫触娆℃暟
+            final int MAX_ITERATIONS = 15; // 鏈€澶氭墽琛?5杞惊鐜?            int duplicateOperationCount = 0; // 閲嶅鎿嶄綔璁℃暟
+            String lastToolName = "";
+            String lastToolArgs = "";
+
+            while (true) {
+                iteration++;
+                System.out.println("=== 宸ュ叿璋冪敤寰幆 " + iteration + " ===");
+
+                // 鎺ㄩ€佸惊鐜紑濮嬩簨浠?                safeSend.accept("loop_start", "绗?" + iteration + " 杞惊鐜?);
+
+                // 妫€鏌ユ槸鍚﹁揪鍒拌繛缁け璐ユ鏁颁笂闄?                if (consecutiveFailures >= 5) {
+                    System.out.println("宸ュ叿杩炵画澶辫触" + consecutiveFailures + "娆★紝鍋滄杩唬");
+                    safeSend.accept("error", "宸ュ叿杩炵画澶辫触" + consecutiveFailures + "娆★紝鍋滄杩唬");
+                    emitter.complete();
+                    return;
+                }
+
+                // 妫€鏌ユ槸鍚﹁揪鍒版渶澶ц凯浠ｆ鏁?                if (iteration > MAX_ITERATIONS) {
+                    System.out.println("宸茶揪鍒版渶澶ц凯浠ｆ鏁?" + MAX_ITERATIONS + ")锛屽己鍒跺仠姝㈠惊鐜?);
+                    safeSend.accept("error", "宸茶揪鍒版渶澶ц凯浠ｆ鏁?" + MAX_ITERATIONS + ")锛屽己鍒跺仠姝㈠惊鐜?);
+                    emitter.complete();
+                    return;
+                }
+
+                // 璋冪敤AI
+                ChatRequest request = ChatRequest.builder()
+                        .messages(messages)
+                        .toolSpecifications(tools)
+                        .build();
+
+                AiMessage aiMessage = null;
+                try {
+                    var response = chatLanguageModel.chat(request);
+                    aiMessage = response.aiMessage();
+                    
+                    System.out.println("=== SSE AI鍝嶅簲 ===");
+                    System.out.println("AI鏄惁鏈夊伐鍏疯皟鐢ㄨ姹? " + aiMessage.hasToolExecutionRequests());
+                    System.out.println("AI瀹屾暣鍥炲鍐呭: " + aiMessage.text());
+                    System.out.println("AI鍥炲绫诲瀷: " + aiMessage.getClass().getName());
+                    
+                    // 鎵撳嵃response鐨勮缁嗕俊鎭拒绝执行：                    System.out.println("Response绫诲瀷: " + response.getClass().getName());
+                    if (response.toString() != null) {
+                        System.out.println("Response toString: " + response.toString());
+                    }
+                    
+                    if (aiMessage.hasToolExecutionRequests()) {
+                        System.out.println("宸ュ叿璋冪敤璇锋眰鏁伴噺: " + aiMessage.toolExecutionRequests().size());
+                        for (dev.langchain4j.agent.tool.ToolExecutionRequest toolReq : aiMessage.toolExecutionRequests()) {
+                            System.out.println("  璇锋眰宸ュ叿: " + toolReq.name());
+                            System.out.println("  宸ュ叿鍙傛暟: " + toolReq.arguments());
+                        }
+                    }
+                    System.out.println("================");
+                } catch (Exception e) {
+                    System.err.println("AI璋冪敤澶辫触: " + e.getMessage());
+                    safeSend.accept("error", "AI璋冪敤澶辫触");
+                    emitter.complete();
+                    return;
+                }
+
+                // 妫€鏌ユ槸鍚︽湁宸ュ叿璋冪敤璇锋眰
+                if (!aiMessage.hasToolExecutionRequests()) {
+                    // 妫€鏌I鏂囨湰涓槸鍚﹀寘鍚伐鍏疯皟鐢紙JSON鏍煎紡鎴朮ML鏍煎紡锛?                    String aiText = aiMessage.text();
+                    if (aiText != null && !aiText.isEmpty()) {
+                        System.out.println("銆愭鏌I鏂囨湰涓殑宸ュ叿璋冪敤銆?);
+                        System.out.println("AI鏂囨湰鍐呭: " + aiText);
+                        
+                        // 灏濊瘯瑙ｆ瀽JSON鏍煎紡鐨勫伐鍏疯皟鐢?                        if (aiText.contains("{\"name\":") || aiText.contains("\"tool_calls\"")) {
+                            System.out.println("銆愭娴嬪埌JSON鏍煎紡鐨勫伐鍏疯皟鐢ㄣ€?);
+                            
+                            try {
+                                List<dev.langchain4j.agent.tool.ToolExecutionRequest> jsonToolRequests = parseJsonToolCalls(aiText);
+                                if (!jsonToolRequests.isEmpty()) {
+                                    System.out.println("鎴愬姛瑙ｆ瀽鍒? + jsonToolRequests.size() + "涓狫SON宸ュ叿璋冪敤");
+                                    
+                                    // 鎵ц瑙ｆ瀽鍒扮殑宸ュ叿
+                                    enhancedMessages.add(dev.langchain4j.data.message.AiMessage.from(aiText));
+                                    
+                                    // 浣跨敤涓存椂鍙橀噺澶勭悊宸ュ叿鎵ц
+                                    boolean jsonToolsSucceeded = true;
+                                    int jsonConsecutiveFailures = 0;
+                                    
+                                    for (dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest : jsonToolRequests) {
+                                        String toolName = toolRequest.name();
+                                        String argumentsJson = toolRequest.arguments();
+
+                                        System.out.println("AI璇锋眰鎵ц宸ュ叿: " + toolName);
+                                        System.out.println("宸ュ叿鍙傛暟: " + argumentsJson);
+
+                                        // 鎺ㄩ€佸伐鍏疯皟鐢ㄥ紑濮嬩簨浠拒绝执行：                                        safeSend.accept("tool_start", "鎵ц宸ュ叿: " + toolName + "\n鍙傛暟: " + argumentsJson);
+
+                                        try {
+                                            // 瑙ｆ瀽鍙傛暟
+                                            Map<String, Object> arguments = parseToolArguments(argumentsJson);
+
+                                            // 銆愰噸瑕併€戞娴媠elector鍙傛暟鏄惁鍖呭惈ref鎴栧潗鏍囷紝濡傛灉鏈夊氨鎷掔粷鎵ц
+                                            if ("chrome_click_element".equals(toolName) || "chrome_fill_or_select".equals(toolName)) {
+                                                Object selectorObj = arguments.get("selector");
+                                                if (selectorObj != null) {
+                                                    String selectorStr = selectorObj.toString();
+                                                
+                                                    // 妫€娴媟ef
+                                                    if (selectorStr.contains("[ref=")) {
+                                                        String errorMsg = "鉂拒绝执行：鎷掔粷鎵ц锛歴elector鍙傛暟涓寘鍚簡ref锛拒绝执行：;
+                                                        System.out.println(errorMsg);
+                                                        safeSend.accept("tool_error", errorMsg);
+                                                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(toolRequest, errorMsg));
+                                                        jsonToolsSucceeded = false;
+                                                        jsonConsecutiveFailures++;
+                                                        continue;
+                                                    }
+                                                    
+                                                    // 检测坐标属性                                                    if (selectorStr.contains("[x=") || selectorStr.contains("[y=") || 
+                                                        selectorStr.contains("[x0=") || selectorStr.contains("[y0=") ||
+                                                        selectorStr.contains("[x1=") || selectorStr.contains("[y1=")) {
+                                                        String errorMsg = "鉂拒绝执行：鎷掔粷鎵ц锛歴elector鍙傛暟涓寘鍚簡鍧愭爣灞炴€э紒";
+                                                        System.out.println(errorMsg);
+                                                        safeSend.accept("tool_error", errorMsg);
+                                                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(toolRequest, errorMsg));
+                                                        jsonToolsSucceeded = false;
+                                                        jsonConsecutiveFailures++;
+                                                        continue;
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // 鎵ц宸ュ叿
+                                            Map<String, Object> mcpResult = mcpService.callTool(toolName, arguments);
+                                            String toolResult = mcpResult != null 拒绝执行： mcpResult.toString() : "宸ュ叿鎵ц鎴愬姛浣嗘棤杩斿洖缁撴灉";
+                                            
+                                            // 鎺ㄩ€佸伐鍏锋墽琛岀粨鏋拒绝执行：                                            safeSend.accept("tool_result", "宸ュ叿鎵ц缁撴灉: " + toolResult);
+                                            
+                                            // 灏嗗伐鍏锋墽琛岀粨鏋滄坊鍔犲埌娑堟伅涓?                                            enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                                toolRequest, toolResult
+                                            ));
+                                            
+                                            System.out.println("宸ュ叿鎵ц鎴愬姛");
+                                            
+                                        } catch (Exception e) {
+                                            String errorMsg = "宸ュ叿鎵ц澶辫触: " + e.getMessage();
+                                            System.err.println(errorMsg);
+                                            e.printStackTrace();
+                                            
+                                            // 鎺ㄩ€侀敊请俊鎭拒绝执行：                                            safeSend.accept("tool_error", errorMsg);
+                                            
+                                            // 娣诲姞宸ュ叿鎵ц缁撴灉锛堥敊璇秷鎭級
+                                            enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                                toolRequest, errorMsg
+                                            ));
+                                            
+                                            jsonToolsSucceeded = false;
+                                            jsonConsecutiveFailures++;
+                                        }
+                                    }
+                                    
+                                    // 妫€鏌SON宸ュ叿鎵ц缁撴灉
+                                    if (jsonConsecutiveFailures >= 5) {
+                                        System.out.println("JSON宸ュ叿杩炵画澶辫触" + jsonConsecutiveFailures + "娆★紝鍋滄杩唬");
+                                        safeSend.accept("error", "宸ュ叿杩炵画澶辫触" + jsonConsecutiveFailures + "娆★紝鍋滄杩唬");
+                                        emitter.complete();
+                                        return;
+                                    }
+                                    
+                                    // 缁х画涓嬩竴杞惊鐜?                                    continue;
+                                }
+                            } catch (Exception e) {
+                                System.err.println("澶勭悊JSON宸ュ叿璋冪敤澶辫触: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+                        
+                        // 妫€鏌ML鏍煎紡鐨勫伐鍏疯皟鐢?                        if (aiText.contains("<function_calls>")) {
+                            System.out.println("銆愭娴嬪埌XML鏍煎紡鐨勫伐鍏疯皟鐢ㄣ€?);
+                            
+                            // 瑙ｆ瀽XML鏍煎紡鐨勫伐鍏疯皟鐢?                            try {
+                                List<dev.langchain4j.agent.tool.ToolExecutionRequest> xmlToolRequests = parseXmlToolCalls(aiText);
+                                if (!xmlToolRequests.isEmpty()) {
+                                    System.out.println("鎴愬姛瑙ｆ瀽鍒? + xmlToolRequests.size() + "涓猉ML宸ュ叿璋冪敤");
+                                    
+                                    // 鎵ц瑙ｆ瀽鍒扮殑宸ュ叿
+                                    enhancedMessages.add(dev.langchain4j.data.message.AiMessage.from(aiText));
+                                    
+                                    // 浣跨敤涓存椂鍙橀噺澶勭悊宸ュ叿鎵ц
+                                    boolean xmlToolsSucceeded = true;
+                                    int xmlConsecutiveFailures = 0;
+                                    
+                                    for (dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest : xmlToolRequests) {
+                                        String toolName = toolRequest.name();
+                                        String argumentsJson = toolRequest.arguments();
+
+                                        System.out.println("AI璇锋眰鎵ц宸ュ叿: " + toolName);
+                                        System.out.println("宸ュ叿鍙傛暟: " + argumentsJson);
+
+                                        // 鎺ㄩ€佸伐鍏疯皟鐢ㄥ紑濮嬩簨浠拒绝执行：                                        safeSend.accept("tool_start", "鎵ц宸ュ叿: " + toolName + "\n鍙傛暟: " + argumentsJson);
+
+                                        try {
+                                            // 瑙ｆ瀽鍙傛暟
+                                            Map<String, Object> arguments = parseToolArguments(argumentsJson);
+
+                                            // 銆愰噸瑕併€戞娴媠elector鍙傛暟鏄惁鍖呭惈ref鎴栧潗鏍囷紝濡傛灉鏈夊氨鎷掔粷鎵ц
+                                            if ("chrome_click_element".equals(toolName) || "chrome_fill_or_select".equals(toolName)) {
+                                                Object selectorObj = arguments.get("selector");
+                                                if (selectorObj != null) {
+                                                String selectorStr = selectorObj.toString();
+                                            
+                                                // 妫€娴媟ef
+                                                if (selectorStr.contains("[ref=")) {
+                                                    String errorMsg = "鉂拒绝执行：鎷掔粷鎵ц锛歴elector鍙傛暟涓寘鍚簡ref锛拒绝执行：;
+                                                    System.out.println(errorMsg);
+                                                    safeSend.accept("tool_error", errorMsg);
+                                                    enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(toolRequest, errorMsg));
+                                                    xmlToolsSucceeded = false;
+                                                    xmlConsecutiveFailures++;
+                                                    continue;
+                                                }
+                                                
+                                                // 检测坐标属性                                                if (selectorStr.contains("[x=") || selectorStr.contains("[y=") || 
+                                                    selectorStr.contains("[x0=") || selectorStr.contains("[y0=") ||
+                                                    selectorStr.contains("[x1=") || selectorStr.contains("[y1=")) {
+                                                    String errorMsg = "鉂拒绝执行：鎷掔粷鎵ц锛歴elector鍙傛暟涓寘鍚簡鍧愭爣灞炴€э紒";
+                                                    System.out.println(errorMsg);
+                                                    safeSend.accept("tool_error", errorMsg);
+                                                    enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(toolRequest, errorMsg));
+                                                    xmlToolsSucceeded = false;
+                                                    xmlConsecutiveFailures++;
+                                                    continue;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // 鎵ц宸ュ叿
+                                        Map<String, Object> mcpResult = mcpService.callTool(toolName, arguments);
+                                        String toolResult = mcpResult != null 拒绝执行： mcpResult.toString() : "宸ュ叿鎵ц鎴愬姛浣嗘棤杩斿洖缁撴灉";
+                                        
+                                        // 鎺ㄩ€佸伐鍏锋墽琛岀粨鏋拒绝执行：                                        safeSend.accept("tool_result", "宸ュ叿鎵ц缁撴灉: " + toolResult);
+                                        
+                                        // 灏嗗伐鍏锋墽琛岀粨鏋滄坊鍔犲埌娑堟伅涓?                                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                            toolRequest, toolResult
+                                        ));
+                                        
+                                        System.out.println("宸ュ叿鎵ц鎴愬姛");
+                                        
+                                    } catch (Exception e) {
+                                        String errorMsg = "宸ュ叿鎵ц澶辫触: " + e.getMessage();
+                                        System.err.println(errorMsg);
+                                        e.printStackTrace();
+                                        
+                                        // 鎺ㄩ€侀敊请俊鎭拒绝执行：                                        safeSend.accept("tool_error", errorMsg);
+                                        
+                                        // 娣诲姞宸ュ叿鎵ц缁撴灉锛堥敊璇秷鎭級
+                                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                            toolRequest, errorMsg
+                                        ));
+                                        
+                                        xmlToolsSucceeded = false;
+                                        xmlConsecutiveFailures++;
+                                    }
+                                }
+                                
+                                // 妫€鏌ML宸ュ叿鎵ц缁撴灉
+                                if (xmlConsecutiveFailures >= 5) {
+                                    System.out.println("XML宸ュ叿杩炵画澶辫触" + xmlConsecutiveFailures + "娆★紝鍋滄杩唬");
+                                    safeSend.accept("error", "宸ュ叿杩炵画澶辫触" + xmlConsecutiveFailures + "娆★紝鍋滄杩唬");
+                                    emitter.complete();
+                                    return;
+                                }
+                                
+                                // 缁х画涓嬩竴杞惊鐜?                                continue;
+                            }
+                        } catch (Exception e) {
+                            System.err.println("澶勭悊XML宸ュ叿璋冪敤澶辫触: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+                    
+                    // 娌℃湁宸ュ叿璋冪敤锛孉I缁欏嚭鏈€缁堝洖澶?                    System.out.println("銆怱SE銆慉I缁欏嚭鏈€缁堝洖澶嶏紝缁撴潫寰幆");
+                    System.out.println("銆怱SE銆戞渶缁堝洖澶嶅唴瀹? " + aiMessage.text());
+                    safeSend.accept("final_reply", aiMessage.text());
+                    emitter.complete();
+                    return;
+                }
+
+                // 鎵ц宸ュ叿
+                List<dev.langchain4j.agent.tool.ToolExecutionRequest> toolRequests = aiMessage.toolExecutionRequests();
+                
+                // 灏咥I娑堟伅娣诲姞鍒癿essages涓紝璁板綍AI鐨勫伐鍏疯姹?                enhancedMessages.add(aiMessage);
+                System.out.println("AI娑堟伅宸叉坊鍔犲埌messages锛屽綋鍓峬essages澶у皬: " + messages.size());
+                
+                for (dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest : toolRequests) {
+                    String toolName = toolRequest.name();
+                    String argumentsJson = toolRequest.arguments();
+
+                    System.out.println("AI璇锋眰鎵ц宸ュ叿: " + toolName);
+                    System.out.println("宸ュ叿鍙傛暟: " + argumentsJson);
+
+                    // 检测重复操作?                    if (toolName.equals(lastToolName) && argumentsJson.equals(lastToolArgs)) {
+                        duplicateOperationCount++;
+                        System.out.println("妫€娴嬪埌閲嶅鎿嶄綔: " + toolName + " (閲嶅娆℃暟: " + duplicateOperationCount + ")");
+                        
+                        if (duplicateOperationCount >= 3) {
+                            System.out.println("杩炵画閲嶅鎿嶄綔3娆★紝寮哄埗鍋滄");
+                            String errorMsg = "鉂拒绝执行：妫€娴嬪埌杩炵画閲嶅鎿嶄綔3娆★紝请峰皾请曞叾浠栨柟娉曘€傞噸澶嶇殑鎿嶄綔: " + toolName + ", 鍙傛暟: " + argumentsJson;
+                            safeSend.accept("error", errorMsg);
+                            emitter.complete();
+                            return;
+                        }
+                    } else {
+                        // 鎿嶄綔涓嶅悓锛岄噸缃噸澶嶈鏁?                        duplicateOperationCount = 0;
+                        lastToolName = toolName;
+                        lastToolArgs = argumentsJson;
+                    }
+
+                    // 鎺ㄩ€佸伐鍏疯皟鐢ㄥ紑濮嬩簨浠拒绝执行：                    safeSend.accept("tool_start", "鎵ц宸ュ叿: " + toolName + "\n鍙傛暟: " + argumentsJson);
+
+                    try {
+                        // 瑙ｆ瀽鍙傛暟
+                        Map<String, Object> arguments = parseToolArguments(argumentsJson);
+
+                        // 銆愰噸瑕併€戞娴媠elector鍙傛暟鏄惁鍖呭惈ref鎴栧潗鏍囷紝濡傛灉鏈夊氨鎷掔粷鎵ц
+                        if ("chrome_click_element".equals(toolName) || "chrome_fill_or_select".equals(toolName)) {
+                            Object selectorObj = arguments.get("selector");
+                            if (selectorObj != null) {
+                                String selectorStr = selectorObj.toString();
+                            
+                                // 妫€娴媟ef
+                                if (selectorStr.contains("[ref=")) {
+                                    String errorMsg = "鉂拒绝执行：鎷掔粷鎵ц锛歴elector鍙傛暟涓寘鍚簡ref锛乺ef鏄疢CP宸ュ叿鐨勫唴閮ㄥ紩鐢↖D锛屼笉鏄疕TML鍏冪礌鐨勫睘鎬с€拒绝执行：;
+                                    errorMsg += "请锋牴鎹厓绱犵殑瀹為檯HTML灞炴€э紙如果俢lass銆乮d銆乼ext銆乼ype锛夋潵鏋勫缓selector銆拒绝执行：;
+                                    errorMsg += "例如嬪锛歿\"selector\": \"button.close\"} 鎴拒绝执行：{\"selector\": \"#button-id\"}";
+                                    System.out.println(errorMsg);
+
+                                    // 鎺ㄩ€侀敊璇俊鎭粰鍓嶇
+                                    safeSend.accept("tool_error", errorMsg);
+
+                                    // 銆愬叧閿慨鏀广€戜娇鐢═oolExecutionResultMessage璁板綍澶辫触锛屼繚鎸佹秷鎭被鍨嬩竴鑷?                                    enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                        toolRequest, errorMsg
+                                    ));
+
+                                    allToolsSucceeded = false;
+                                    consecutiveFailures++;
+                                    System.out.println("宸ュ叿鎵ц琚嫆缁濓紙selector鍖呭惈ref锛拒绝执行：);
+                                    System.out.println("杩炵画澶辫触娆℃暟: " + consecutiveFailures);
+                                    continue; // 璺宠繃杩欐鎵ц锛岃AI閲嶆柊灏濊瘯
+                                }
+                            
+                                // 检测坐标属性                                if (selectorStr.matches(".*\\[\\s*(x|y|x0|y0|x1|y1)\\s*=") || 
+                                    selectorStr.matches(".*\\[x=.*\\].*\\[y=.*\\]") ||
+                                    selectorStr.matches(".*\\[x0=.*\\].*\\[y0=.*\\]") ||
+                                    selectorStr.matches(".*\\[x1=.*\\].*\\[y1=.*\\]")) {
+                                    String errorMsg = "鉂拒绝执行：鎷掔粷鎵ц锛歴elector鍙傛暟涓寘鍚簡鍧愭爣灞炴€э紙x銆亂銆亁0銆亂0銆亁1銆亂1锛夛紒杩欎簺鏄疢CP宸ュ叿杩斿洖鐨勫潗鏍囦俊鎭紝涓嶆槸HTML鍏冪礌鐨勫睘鎬с€拒绝执行：;
+                                    errorMsg += "请锋牴鎹厓绱犵殑瀹為檯HTML灞炴€э紙如果俢lass銆乮d銆乼ext銆乼ype锛夋潵鏋勫缓selector銆拒绝执行：;
+                                    errorMsg += "例如嬪锛歿\"selector\": \"button.close\"} 鎴拒绝执行：{\"selector\": \"#button-id\"}";
+                                    errorMsg += "如果傛灉闇€瑕佹牴鎹厓绱犲畾浣嶏紝请蜂娇鐢╟hrome_computer鐨刢oordinates鍙傛暟锛岃€屼笉鏄痵elector鍙傛暟锛拒绝执行：;
+                                    System.out.println(errorMsg);
+
+                                    // 鎺ㄩ€侀敊璇俊鎭粰鍓嶇
+                                    safeSend.accept("tool_error", errorMsg);
+
+                                    // 銆愬叧閿慨鏀广€戜娇鐢═oolExecutionResultMessage璁板綍澶辫触锛屼繚鎸佹秷鎭被鍨嬩竴鑷?                                    enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                        toolRequest, errorMsg
+                                    ));
+
+                                    allToolsSucceeded = false;
+                                    consecutiveFailures++;
+                                    System.out.println("宸ュ叿鎵ц琚嫆缁濓紙selector鍖呭惈鍧愭爣灞炴€э級");
+                                    System.out.println("杩炵画澶辫触娆℃暟: " + consecutiveFailures);
+                                    continue; // 璺宠繃杩欐鎵ц锛岃AI閲嶆柊灏濊瘯
+                                }
+                            }
+                        }
+
+                        // 工具调用失败重试机制
+                        int retryCount = 0;
+                        boolean toolSucceeded = false;
+                        String resultContent = "";
+                        
+                        while (retryCount < maxRetries && !toolSucceeded) {
+                            retryCount++;
+                            
+                            try {
+                                // 璋冪敤MCP鏈嶅姟鎵ц宸ュ叿
+                                Map<String, Object> result = mcpService.callTool(toolName, arguments);
+                                
+                                // 銆愬叧閿€戜娇鐢ㄧ粺涓€鐨刢leanToolResult鏂规硶澶勭悊宸ュ叿缁撴灉
+                                String screenshotPath = result.containsKey("screenshotPath") ? 
+                                    result.get("screenshotPath").toString() : null;
+                                resultContent = cleanToolResult(result, toolName, screenshotPath);
+                                
+                                System.out.println("===== SSE宸ュ叿缁撴灉澶勭悊瀹屾垚 =====");
+                                System.out.println("resultContent绫诲瀷: " + resultContent.getClass().getName());
+                                System.out.println("resultContent鍐呭(鍓?00瀛楃): " + resultContent.substring(0, Math.min(200, resultContent.length())));
+                                System.out.println("resultContent鏄惁鍖呭惈ref: " + resultContent.contains("[ref="));
+                                System.out.println("==================");
+                                
+                            // 宸ュ叿鎵ц鎴愬姛
+                            toolSucceeded = true;
+                            System.out.println("宸ュ叿鎵ц鎴愬姛锛岄噸请曟鏁拒绝执行： " + retryCount);
+                                
+                            } catch (Exception e) {
+                                System.err.println("宸ュ叿鎵ц澶辫触锛堢" + retryCount + "娆￠噸璇曪級: " + e.getMessage());
+                                safeSend.accept("tool_error", "宸ュ叿鎵ц澶辫触锛堢" + retryCount + "娆￠噸璇曪級: " + e.getMessage());
+                                
+                                if (retryCount >= maxRetries) {
+                                    // 閲嶈瘯娆℃暟鐢ㄥ畬锛岃褰曞け璐?                                    allToolsSucceeded = false;
+                                    consecutiveFailures++;
+                                    System.out.println("宸茶揪鍒版渶澶ч噸璇曟鏁帮紝鍋滄閲嶈瘯");
+                                    
+                                    // 浣跨敤ToolExecutionResultMessage璁板綍澶辫触
+                                    enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                        toolRequest, "宸ュ叿鎵ц澶辫触: " + e.getMessage()
+                                    ));
+                                }
+                                // 缁х画閲嶈瘯
+                            }
+                        }
+                        
+                        // 鍙湁宸ュ叿鎵ц鎴愬姛鎵嶆帹閫佺粨鏋拒绝执行：                        if (toolSucceeded) {
+                            consecutiveFailures = 0; // 閲嶇疆杩炵画澶辫触璁℃暟
+
+                            // 銆愬叧閿€戜繚鎸丼SE娴佸紡杈撳嚭锛屾帹閫佸伐鍏锋墽琛岀粨鏋拒绝执行：                            safeSend.accept("tool_result", "宸ュ叿鎵ц缁撴灉: " + resultContent);
+
+                            System.out.println("鍑嗗娣诲姞宸ュ叿鎵ц缁撴灉鍒癿essages");
+                            // 銆愬叧閿慨鏀广€戜娇鐢═oolExecutionResultMessage鑰屼笉鏄疷serMessage锛岀‘淇滱I鑳芥纭悊瑙ｅ伐鍏锋墽琛岀粨鏋?                            enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                                toolRequest, resultContent
+                            ));
+                            System.out.println("宸ュ叿鎵ц缁撴灉宸叉坊鍔犲埌messages锛屽綋鍓峬essages澶у皬: " + messages.size());
+
+                            System.out.println("宸ュ叿鎵ц鎴愬姛");
+                        }
+                    } catch (Exception e) {
+                        System.err.println("宸ュ叿鎵ц澶辫触: " + e.getMessage());
+                        safeSend.accept("tool_error", "宸ュ叿鎵ц澶辫触: " + e.getMessage());
+
+                        // 浣跨敤ToolExecutionResultMessage璁板綍澶辫触
+                        enhancedMessages.add(dev.langchain4j.data.message.ToolExecutionResultMessage.from(
+                            toolRequest, "宸ュ叿鎵ц澶辫触: " + e.getMessage()
+                        ));
+
+                        allToolsSucceeded = false;
+                        consecutiveFailures++;
+                    }
+                }
+
+                // 妫€鏌ユ槸鍚︽墍鏈夊伐鍏烽兘澶辫触浜?                if (!allToolsSucceeded) {
+                    System.out.println("宸ュ叿鎵ц澶辫触锛岃AI浣跨敤鍏朵粬鏂规");
+                    tools = null;
+                }
+            }
+        }
+        } catch (Exception e) {
+            System.err.println("executeToolLoopWithSSE鎵ц寮傚父: " + e.getMessage());
+            e.printStackTrace();
+            try {
+                safeSend.accept("error", "鎵ц寮傚父: " + e.getMessage());
+                emitter.completeWithError(e);
+            } catch (Exception ex) {
+                emitter.completeWithError(ex);
+            }
+        }
+    }
+
+    /**
+     * 瑙ｆ瀽宸ュ叿鍙傛暟
+     */
+    private Map<String, Object> parseToolArguments(String argsStr) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(argsStr);
+            return mapper.convertValue(node, Map.class);
+        } catch (Exception e) {
+            System.err.println("瑙ｆ瀽宸ュ叿鍙傛暟澶辫触: " + e.getMessage());
+            return new HashMap<>();
+        }
+    }
+    
+    /**
+     * 缁熶竴鐨勫伐鍏风粨鏋滃鐞嗘柟娉拒绝执行：- 绉婚櫎ref瀛楁骞惰繑鍥炵函鍑€鐨勫伐鍏风粨鏋拒绝执行：     * 姝ゆ柟娉曠敤浜庣‘淇滱I鑳藉姝ｇ‘鐞嗚В宸ュ叿鎵ц缁撴灉锛岄伩鍏嶈ref瀛楁骞叉壈
+     * 
+     * @param mcpResult MCP宸ュ叿杩斿洖鐨勫師濮嬬粨鏋?     * @param toolName 宸ュ叿鍚嶇О
+     * @param screenshotPath 鎴浘璺緞锛堝彲閫夛紝鐢ㄤ簬鍥剧墖请嗗埆锛拒绝执行：     * @return 娓呯悊鍚庣殑宸ュ叿缁撴灉瀛楃涓拒绝执行：     */
+    private String cleanToolResult(Map<String, Object> mcpResult, String toolName, String screenshotPath) {
+        if (mcpResult == null) {
+            return "銆愬伐鍏锋墽琛屻€戝伐鍏锋墽琛屽畬鎴愶紝浣嗘湭杩斿洖缁撴灉";
+        }
+        
+        StringBuilder result = new StringBuilder();
+        
+        // 妫€鏌ユ槸鍚︽湁閿欒
+        Object isError = mcpResult.get("isError");
+        if (isError != null && Boolean.TRUE.equals(isError)) {
+            result.append("鉂拒绝执行：鎵ц澶辫触\n");
+            
+            Object content = mcpResult.get("content");
+            if (content != null) {
+                result.append("閿欒淇℃伅: ").append(content).append("\n");
+            }
+            return result.toString();
+        }
+        
+        // 澶勭悊content鍐呭 - 缁熶竴鐨剅ef瀛楁绉婚櫎閫昏緫
+        Object content = mcpResult.get("content");
+        String cleanedContent = "";
+        
+        if (content != null) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                
+                System.out.println("===== 寮€濮嬪鐞嗗伐鍏风粨鏋?=====");
+                System.out.println("宸ュ叿鍚嶇О: " + toolName);
+                System.out.println("contentObj绫诲瀷: " + content.getClass().getName());
+                
+                if (content instanceof java.util.List) {
+                    // 澶勭悊List<TextContent>鐨勬儏鍐?                    java.util.List<?> contentList = (java.util.List<?>) content;
+                    System.out.println("content鏄疞ist锛屽ぇ灏? " + contentList.size());
+                    
+                    for (int i = 0; i < contentList.size(); i++) {
+                        Object item = contentList.get(i);
+                        System.out.println("  item " + i + " 绫诲瀷: " + item.getClass().getName());
+                        
+                        // 灏濊瘯鑾峰彇text瀛楁
+                        String textStr = null;
+                        
+                        // 鏂规硶1锛氬皾璇曢€氳繃鍙嶅皠鑾峰彇text瀛楁
+                        try {
+                            java.lang.reflect.Field textField = item.getClass().getDeclaredField("text");
+                            textField.setAccessible(true);
+                            Object textValue = textField.get(item);
+                            if (textValue != null) {
+                                textStr = textValue.toString();
+                            }
+                        } catch (Exception e) {
+                            System.out.println("  閫氳繃鍙嶅皠鑾峰彇text瀛楁澶辫触: " + e.getMessage());
+                        }
+                        
+                        // 鏂规硶2锛氬皾璇曢€氳繃Map鑾峰彇text瀛楁
+                        if (textStr == null && item instanceof java.util.Map) {
+                            java.util.Map<?, ?> textContentMap = (java.util.Map<?, ?>) item;
+                            Object textObj = textContentMap.get("text");
+                            if (textObj != null) {
+                                textStr = textObj.toString();
+                            }
+                        }
+                        
+                        // 鏂规硶3锛氬鏋滄槸TextContent瀵硅薄锛岃浆鎹负JSON鍐嶆彁鍙杢ext
+                        if (textStr == null) {
+                            String itemJson = mapper.writeValueAsString(item);
+                            com.fasterxml.jackson.databind.JsonNode itemNode = mapper.readTree(itemJson);
+                            if (itemNode.has("text")) {
+                                textStr = itemNode.get("text").asText();
+                            }
+                        }
+                        
+                        if (textStr != null) {
+                            System.out.println("  textStr(鍓?00瀛楃): " + textStr.substring(0, Math.min(100, textStr.length())));
+                            
+                            // 缁熶竴鐨剅ef绉婚櫎澶勭悊
+                            String cleaned = textStr;
+                            
+                            // 鏂规硶1锛氬鏋滄槸JSON鏍煎紡锛岃В鏋怞SON骞剁Щ闄ef瀛楁
+                            if (textStr.trim().startsWith("{") || textStr.trim().startsWith("[")) {
+                                try {
+                                    com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(textStr);
+                                    // 閫掑綊绉婚櫎鎵€鏈塺ef瀛楁锛堝寘鎷琂SON瀛楁鍜屽瓧绗︿覆涓殑ref锛拒绝执行：                                    removeRefFields(rootNode);
+                                    // 杞洖瀛楃涓?                                    cleaned = mapper.writeValueAsString(rootNode);
+                                    System.out.println("  JSON鏍煎紡澶勭悊瀹屾垚");
+                                } catch (Exception jsonEx) {
+                                    System.out.println("  JSON瑙ｆ瀽澶辫触锛屼娇鐢ㄥ瓧绗︿覆姝ｅ垯鏇挎崲: " + jsonEx.getMessage());
+                                    // 鏂规硶2锛氬鏋滄槸JSON瑙ｆ瀽澶辫触锛屼娇鐢ㄦ鍒欒〃杈惧紡绉婚櫎瀛楃涓蹭腑鐨剅ef
+                                    cleaned = textStr.replaceAll("\\s*\\[ref=ref_\\d+\\]", "");
+                                }
+                            } else {
+                                // 涓嶆槸JSON鏍煎紡锛岀洿鎺ヤ娇鐢ㄦ鍒欒〃杈惧紡绉婚櫎ref
+                                System.out.println("  涓嶆槸JSON鏍煎紡锛屼娇鐢ㄥ瓧绗︿覆姝ｅ垯鏇挎崲");
+                                cleaned = textStr.replaceAll("\\s*\\[ref=ref_\\d+\\]", "");
+                            }
+                            
+                            System.out.println("  cleaned(鍓?00瀛楃): " + cleaned.substring(0, Math.min(100, cleaned.length())));
+                            System.out.println("  cleaned鏄惁鍖呭惈ref: " + cleaned.contains("[ref="));
+                            cleanedContent += cleaned;
+                        } else {
+                            System.out.println("  鏃犳硶鎻愬彇text瀛楁锛屼娇鐢╰oString()");
+                            cleanedContent += item.toString();
+                        }
+                    }
+                } else {
+                    // 澶勭悊鍗曚釜content瀵硅薄
+                    String contentStr = content.toString();
+                    System.out.println("content鏄疭tring锛屽墠100瀛楃: " + contentStr.substring(0, Math.min(100, contentStr.length())));
+                    
+                    // 銆愬叧閿€戞鏌ontentStr鏄惁鏄疛SON鏍煎紡
+                    if (contentStr.trim().startsWith("{") || contentStr.trim().startsWith("[")) {
+                        // 鏄疛SON鏍煎紡锛岃繘琛宺ef绉婚櫎澶勭悊
+                        try {
+                            com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(contentStr);
+                            // 閫掑綊绉婚櫎鎵€鏈塺ef瀛楁
+                            removeRefFields(rootNode);
+                            // 杞洖瀛楃涓?                            cleanedContent = mapper.writeValueAsString(rootNode);
+                            System.out.println("cleanedContent(鍓?00瀛楃): " + cleanedContent.substring(0, Math.min(100, cleanedContent.length())));
+                            System.out.println("cleanedContent鏄惁鍖呭惈ref: " + cleanedContent.contains("[ref="));
+                        } catch (Exception jsonEx) {
+                            System.out.println("  JSON瑙ｆ瀽澶辫触锛屼娇鐢ㄥ師濮媍ontentStr: " + jsonEx.getMessage());
+                            cleanedContent = contentStr;
+                        }
+                    } else {
+                        // 涓嶆槸JSON鏍煎紡锛岀洿鎺ヤ娇鐢?                        System.out.println("  contentStr涓嶆槸JSON鏍煎紡锛岀洿鎺ヤ娇鐢?);
+                        cleanedContent = contentStr;
+                    }
+                }
+                
+                System.out.println("===== 宸ュ叿缁撴灉澶勭悊瀹屾垚 =====");
+                System.out.println("cleanedContent鏄惁鍖呭惈ref: " + cleanedContent.contains("[ref="));
+            } catch (Exception e) {
+                System.err.println("===== 宸ュ叿缁撴灉澶勭悊澶辫触 =====");
+                System.err.println("寮傚父淇℃伅: " + e.getMessage());
+                e.printStackTrace();
+                System.err.println("浣跨敤鍘熷鍐呭");
+                // 如果傛灉瑙ｆ瀽澶辫触锛屼娇鐢ㄥ師濮嬪唴瀹拒绝执行：                cleanedContent = content.toString();
+            }
+        }
+        
+        result.append(cleanedContent);
+        
+        return result.toString();
+    }
+    
+    /**
+     * 鏍煎紡鍖朚CP缁撴灉 - 杩斿洖鐢ㄦ埛鍙嬪ソ鐨勬墽琛岃繃绋嬩俊鎭紙鐢ㄤ簬鏃ュ織鏄剧ず锛?     */
+    private String formatMcpResult(Map<String, Object> mcpResult) {
+        if (mcpResult == null) {
+            return "銆愬伐鍏锋墽琛屻€戝伐鍏锋墽琛屽畬鎴愶紝浣嗘湭杩斿洖缁撴灉";
+        }
+        
+            /**
+     * StringBuilder
+     * 
+     * @author 鏉庡悏闅?     */
+        StringBuilder result = new StringBuilder();
+        result.append("\n銆愬伐鍏锋墽琛岀粨鏋溿€慭n");
+        
+        // 妫€鏌ユ槸鍚︽湁閿欒
+        Object isError = mcpResult.get("isError");
+        if (isError != null && Boolean.TRUE.equals(isError)) {
+            result.append("鉂拒绝执行：鎵ц澶辫触\n");
+            
+            Object content = mcpResult.get("content");
+            if (content != null) {
+                result.append("閿欒淇℃伅: ").append(content).append("\n");
+            }
+        } else {
+            result.append("鉁拒绝执行：鎵ц鎴愬姛\n");
+
+            // 澶勭悊content鍐呭
+            Object content = mcpResult.get("content");
+            if (content != null) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    String cleanedContent = "";
+                    
+                    if (content instanceof java.util.List) {
+                        // 澶勭悊List<TextContent>鐨勬儏鍐?                        java.util.List<?> contentList = (java.util.List<?>) content;
+                        for (Object item : contentList) {
+                            // 灏濊瘯鑾峰彇text瀛楁
+                            String textStr = null;
+                            
+                            // 鏂规硶1锛氬皾璇曢€氳繃鍙嶅皠鑾峰彇text瀛楁
+                            try {
+                                java.lang.reflect.Field textField = item.getClass().getDeclaredField("text");
+                                textField.setAccessible(true);
+                                Object textValue = textField.get(item);
+                                if (textValue != null) {
+                                    textStr = textValue.toString();
+                                }
+                            } catch (Exception e) {
+                                // 鍙嶅皠澶辫触锛屽皾请曞叾浠栨柟娉拒绝执行：                            }
+                            
+                            // 鏂规硶2锛氬皾璇曢€氳繃Map鑾峰彇text瀛楁
+                            if (textStr == null && item instanceof java.util.Map) {
+                                java.util.Map<?, ?> textContentMap = (java.util.Map<?, ?>) item;
+                                Object textObj = textContentMap.get("text");
+                                if (textObj != null) {
+                                    textStr = textObj.toString();
+                                }
+                            }
+                            
+                            // 鏂规硶3锛氬鏋滄槸TextContent瀵硅薄锛岃浆鎹负JSON鍐嶆彁鍙杢ext
+                            if (textStr == null) {
+                                String itemJson = mapper.writeValueAsString(item);
+                                com.fasterxml.jackson.databind.JsonNode itemNode = mapper.readTree(itemJson);
+                                if (itemNode.has("text")) {
+                                    textStr = itemNode.get("text").asText();
+                                }
+                            }
+                            
+                            if (textStr != null) {
+                                // 銆愬叧閿€戞鏌extStr鏄惁鏄疛SON鏍煎紡
+                                if (textStr.trim().startsWith("{") || textStr.trim().startsWith("[")) {
+                                    try {
+                                        // 瑙ｆ瀽JSON瀛楃涓?                                        com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(textStr);
+                                        // 閫掑綊绉婚櫎鎵€鏈塺ef瀛楁
+                                        removeRefFields(rootNode);
+                                        // 杞洖瀛楃涓?                                        cleanedContent += mapper.writeValueAsString(rootNode);
+                                    } catch (Exception jsonEx) {
+                                        // JSON瑙ｆ瀽澶辫触锛屼娇鐢ㄥ師濮嬪唴瀹?                                        cleanedContent += textStr;
+                                    }
+                                } else {
+                                    // 涓嶆槸JSON鏍煎紡锛岀洿鎺ヤ娇鐢?                                    cleanedContent += textStr;
+                                }
+                            } else {
+                                cleanedContent += item.toString();
+                            }
+                        }
+                    } else {
+                        // 澶勭悊鍗曚釜content瀵硅薄
+                        String contentStr = content.toString();
+                        // 銆愬叧閿€戞鏌ontentStr鏄惁鏄疛SON鏍煎紡
+                        if (contentStr.trim().startsWith("{") || contentStr.trim().startsWith("[")) {
+                            try {
+                                // 瑙ｆ瀽JSON瀛楃涓?                                com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(contentStr);
+                                // 閫掑綊绉婚櫎鎵€鏈塺ef瀛楁
+                                removeRefFields(rootNode);
+                                // 杞洖瀛楃涓?                                cleanedContent = mapper.writeValueAsString(rootNode);
+                            } catch (Exception jsonEx) {
+                                // JSON瑙ｆ瀽澶辫触锛屼娇鐢ㄥ師濮嬪唴瀹?                                cleanedContent = contentStr;
+                            }
+                        } else {
+                            // 涓嶆槸JSON鏍煎紡锛岀洿鎺ヤ娇鐢?                            cleanedContent = contentStr;
+                        }
+                    }
+                    
+                    result.append("杩斿洖鏁版嵁: ").append(cleanedContent).append("\n");
+                } catch (Exception e) {
+                    // 如果傛灉瑙ｆ瀽澶辫触锛屼娇鐢ㄥ師濮嬪唴瀹拒绝执行：                    result.append("杩斿洖鏁版嵁: ").append(content.toString()).append("\n");
+                }
+            }
+        }
+        
+        // 澶勭悊鎴浘淇℃伅
+        Object screenshotPath = mcpResult.get("screenshotPath");
+        if (screenshotPath != null) {
+            result.append("\n馃摳 鎴浘宸蹭繚瀛? ").append(screenshotPath).append("\n");
+        }
+        
+        Object screenshotFullpath = mcpResult.get("screenshotFullpath");
+        if (screenshotFullpath != null) {
+            result.append("馃搧 瀹屾暣璺緞: ").append(screenshotFullpath).append("\n");
+        }
+        
+        return result.toString();
+    }
+    
+    /**
+     * 閫掑綊绉婚櫎JSON涓殑鎵€鏈塺ef瀛楁
+     * @param node JSON鑺傜偣
+     */
+    private void removeRefFields(com.fasterxml.jackson.databind.JsonNode node) {
+        if (node.isObject()) {
+            // 绉婚櫎褰撳墠瀵硅薄涓殑ref瀛楁
+            if (node.has("ref")) {
+                ((com.fasterxml.jackson.databind.node.ObjectNode) node).remove("ref");
+            }
+            // 绉婚櫎refId瀛楁
+            if (node.has("refId")) {
+                ((com.fasterxml.jackson.databind.node.ObjectNode) node).remove("refId");
+            }
+            
+            // 銆愰噸瑕併€戝鐞唒ageContent瀛楁涓殑ref瀛楃涓?            if (node.has("pageContent")) {
+                com.fasterxml.jackson.databind.JsonNode pageContentNode = node.get("pageContent");
+                if (pageContentNode.isTextual()) {
+                    String pageContent = pageContentNode.asText();
+                    // 浣跨敤姝ｅ垯琛ㄨ揪寮忕Щ闄ゆ墍鏈夌殑 [ref=ref_X] 妯″紡
+                    String cleanedPageContent = pageContent.replaceAll("\\s*\\[ref=ref_\\d+\\]", "");
+                    ((com.fasterxml.jackson.databind.node.ObjectNode) node).put("pageContent", cleanedPageContent);
+                }
+            }
+            
+            // 閫掑綊澶勭悊鎵€鏈夊瓙鑺傜偣
+            java.util.Iterator<java.util.Map.Entry<String, com.fasterxml.jackson.databind.JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                java.util.Map.Entry<String, com.fasterxml.jackson.databind.JsonNode> entry = fields.next();
+                removeRefFields(entry.getValue());
+            }
+        } else if (node.isArray()) {
+            // 閫掑綊澶勭悊鏁扮粍涓殑姣忎釜鍏冪礌
+            for (com.fasterxml.jackson.databind.JsonNode arrayElement : node) {
+                removeRefFields(arrayElement);
+            }
+        }
+    }
+    
+    /**
+     * 瑙ｆ瀽JSON鏍煎紡鐨勫伐鍏疯皟鐢拒绝执行：     * @param jsonText AI杩斿洖鐨勬枃鏈紝鍖呭惈JSON鏍煎紡鐨勫伐鍏疯皟鐢拒绝执行：     * @return 宸ュ叿璋冪敤请锋眰鍒楄〃
+     */
+    private List<dev.langchain4j.agent.tool.ToolExecutionRequest> parseJsonToolCalls(String jsonText) {
+        List<dev.langchain4j.agent.tool.ToolExecutionRequest> toolRequests = new ArrayList<>();
+        
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            
+            // 灏濊瘯鐩存帴瑙ｆ瀽涓哄崟涓伐鍏疯皟鐢?            if (jsonText.trim().startsWith("{")) {
+                try {
+                    com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(jsonText);
+                    if (jsonNode.has("name") && jsonNode.has("arguments")) {
+                        String toolName = jsonNode.get("name").asText();
+                        String argumentsJson = jsonNode.get("arguments").toString();
+                        
+                        toolRequests.add(dev.langchain4j.agent.tool.ToolExecutionRequest.builder()
+                                .name(toolName)
+                                .arguments(argumentsJson)
+                                .build());
+                        
+                        System.out.println("瑙ｆ瀽鍒癑SON宸ュ叿璋冪敤: " + toolName + " 鍙傛暟: " + argumentsJson);
+                    }
+                } catch (Exception e) {
+                    // 如果傛灉瑙ｆ瀽鍗曚釜澶辫触锛屽皾请曡В鏋愭暟缁拒绝执行：                }
+            }
+            
+            // 灏濊瘯瑙ｆ瀽涓篛penAI鐨則ool_calls鏍煎紡
+            if (toolRequests.isEmpty() && jsonText.contains("\"tool_calls\"")) {
+                com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(jsonText);
+                if (jsonNode.has("tool_calls")) {
+                    com.fasterxml.jackson.databind.JsonNode toolCalls = jsonNode.get("tool_calls");
+                    if (toolCalls.isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode toolCall : toolCalls) {
+                            if (toolCall.has("function")) {
+                                com.fasterxml.jackson.databind.JsonNode function = toolCall.get("function");
+                                if (function.has("name")) {
+                                    String toolName = function.get("name").asText();
+                                    String argumentsJson = function.has("arguments") ? 
+                                            function.get("arguments").toString() : "{}";
+                                    
+                                    toolRequests.add(dev.langchain4j.agent.tool.ToolExecutionRequest.builder()
+                                            .name(toolName)
+                                            .arguments(argumentsJson)
+                                            .build());
+                                    
+                                    System.out.println("瑙ｆ瀽鍒癘penAI鏍煎紡宸ュ叿璋冪敤: " + toolName + " 鍙傛暟: " + argumentsJson);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("瑙ｆ瀽JSON宸ュ叿璋冪敤澶辫触: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return toolRequests;
+    }
+
+    /**
+     * 瑙ｆ瀽XML鏍煎紡鐨勫伐鍏疯皟鐢拒绝执行：     * @param aiText AI杩斿洖鐨勬枃鏈紝鍖呭惈XML鏍煎紡鐨勫伐鍏疯皟鐢拒绝执行：     * @return 宸ュ叿璋冪敤请锋眰鍒楄〃
+     */
+    private List<dev.langchain4j.agent.tool.ToolExecutionRequest> parseXmlToolCalls(String aiText) {
+        List<dev.langchain4j.agent.tool.ToolExecutionRequest> toolRequests = new ArrayList<>();
+        
+        try {
+            // 浣跨敤姝ｅ垯琛ㄨ揪寮忔彁鍙?function_calls>鏍囩鍐呭
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("<function_calls>(.*?)</function_calls>", java.util.regex.Pattern.DOTALL);
+            java.util.regex.Matcher matcher = pattern.matcher(aiText);
+            
+            if (matcher.find()) {
+                String functionCallsContent = matcher.group(1);
+                
+                // 鎻愬彇鎵€鏈夌殑<invoke>鏍囩
+                java.util.regex.Pattern invokePattern = java.util.regex.Pattern.compile("<invoke name=\"([^\"]+)\">(.*?)</invoke>", java.util.regex.Pattern.DOTALL);
+                java.util.regex.Matcher invokeMatcher = invokePattern.matcher(functionCallsContent);
+                
+                while (invokeMatcher.find()) {
+                    String toolName = invokeMatcher.group(1);
+                    String parametersContent = invokeMatcher.group(2);
+                    
+                    // 鎻愬彇鎵€鏈夊弬鏁拒绝执行：                    Map<String, Object> arguments = new HashMap<>();
+                    java.util.regex.Pattern paramPattern = java.util.regex.Pattern.compile("<parameter name=\"([^\"]+)\">([^<]*)</parameter>");
+                    java.util.regex.Matcher paramMatcher = paramPattern.matcher(parametersContent);
+                    
+                    while (paramMatcher.find()) {
+                        String paramName = paramMatcher.group(1);
+                        String paramValue = paramMatcher.group(2);
+                        arguments.put(paramName, paramValue);
+                    }
+                    
+                    // 杞崲涓篔SON瀛楃涓?                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    String argumentsJson = mapper.writeValueAsString(arguments);
+                    
+                    // 鍒涘缓ToolExecutionRequest
+                    dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest = 
+                        dev.langchain4j.agent.tool.ToolExecutionRequest.builder()
+                            .name(toolName)
+                            .arguments(argumentsJson)
+                            .build();
+                    
+                    toolRequests.add(toolRequest);
+                    System.out.println("瑙ｆ瀽鍒癤ML宸ュ叿璋冪敤: " + toolName + " 鍙傛暟: " + argumentsJson);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("瑙ｆ瀽XML宸ュ叿璋冪敤澶辫触: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return toolRequests;
+    }
+}

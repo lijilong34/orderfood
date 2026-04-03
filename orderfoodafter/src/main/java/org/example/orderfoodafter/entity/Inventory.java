@@ -8,8 +8,12 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
-    * 库存表（餐厅管理员库存管理、厨师库存查看功能）
-    */
+ * 库存实体类
+ * 用于存储餐厅库存信息，包括食材名称、数量、规格、供应商等
+ * 
+ * @author 李吉隆
+ * @date 2026-01-13
+ */
 @TableName(value = "inventory")
 public class Inventory {
     /**
@@ -37,6 +41,12 @@ public class Inventory {
     private String spec;
 
     /**
+     * 单位（个、份、袋、瓶等）
+     */
+    @TableField(value = "unit")
+    private String unit;
+
+    /**
      * 库存数量
      */
     @TableField(value = "stock_quantity")
@@ -55,10 +65,11 @@ public class Inventory {
     private Long supplierId;
 
     /**
-     * 最后采购时间
+     * 供应商名称（连表查询使用，不映射到数据库）
      */
-    @TableField(value = "last_purchase_time")
-    private Date lastPurchaseTime;
+    @TableField(exist = false)
+    private String supplierName;
+
 
     /**
      * 创建时间
@@ -145,6 +156,24 @@ public class Inventory {
     }
 
     /**
+     * 获取单位
+     *
+     * @return unit - 单位（个、份、袋、瓶等）
+     */
+    public String getUnit() {
+        return unit;
+    }
+
+    /**
+     * 设置单位
+     *
+     * @param unit 单位（个、份、袋、瓶等）
+     */
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    /**
      * 获取库存数量
      *
      * @return stock_quantity - 库存数量
@@ -189,41 +218,77 @@ public class Inventory {
         return supplierId;
     }
 
-    /**
-     * 设置供应商ID（关联供应商表）
-     *
-     * @param supplierId 供应商ID（关联供应商表）
-     */
-    public void setSupplierId(Long supplierId) {
-        this.supplierId = supplierId;
-    }
+        /**
 
-    /**
-     * 获取最后采购时间
-     *
-     * @return last_purchase_time - 最后采购时间
-     */
-    public Date getLastPurchaseTime() {
-        return lastPurchaseTime;
-    }
+         * 设置供应商ID（关联供应商表）
 
-    /**
-     * 设置最后采购时间
-     *
-     * @param lastPurchaseTime 最后采购时间
-     */
-    public void setLastPurchaseTime(Date lastPurchaseTime) {
-        this.lastPurchaseTime = lastPurchaseTime;
-    }
+         *
 
-    /**
-     * 获取创建时间
-     *
-     * @return create_time - 创建时间
-     */
-    public Date getCreateTime() {
-        return createTime;
-    }
+         * @param supplierId 供应商ID（关联供应商表）
+
+         */
+
+        public void setSupplierId(Long supplierId) {
+
+            this.supplierId = supplierId;
+
+        }
+
+    
+
+        /**
+
+         * 获取供应商名称
+
+         *
+
+         * @return supplierName - 供应商名称
+
+         */
+
+        public String getSupplierName() {
+
+            return supplierName;
+
+        }
+
+    
+
+        /**
+
+         * 设置供应商名称
+
+         *
+
+         * @param supplierName 供应商名称
+
+         */
+
+        public void setSupplierName(String supplierName) {
+
+            this.supplierName = supplierName;
+
+        }
+
+    
+
+    
+
+        /**
+
+         * 获取创建时间
+
+         *
+
+         * @return create_time - 创建时间
+
+         */
+
+        public Date getCreateTime() {
+
+            return createTime;
+
+        }
 
     /**
      * 设置创建时间

@@ -8,8 +8,12 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
-    * 优惠券表
-    */
+ * 优惠券实体类
+ * 用于存储优惠券信息，包括优惠券类型、金额、使用条件、有效期等
+ * 
+ * @author 李吉隆
+ * @date 2025-11-26
+ */
 @TableName(value = "coupon")
 public class Coupon {
     /**

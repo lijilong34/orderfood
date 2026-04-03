@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.orderfoodafter.mapper.PurchaseMapper">
+
+    <resultMap id="PurchaseWithNamesResultMap" type="org.example.orderfoodafter.entity.Purchase">
+        <id column="id" property="id"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="supplier_id" property="supplierId"/>
+        <result column="product_id" property="productId"/>
+        <result column="quantity" property="quantity"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="purchase_date" property="purchaseDate"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="product_name" property="productName"/>
+        <result column="supplier_name" property="supplierName"/>
+    </resultMap>
+
+    <select id="getShopAdminPurchaseList" resultMap="PurchaseWithNamesResultMap">
+        SELECT 
+            p.id,
+            p.shop_id,
+            p.supplier_id,
+            p.product_id,
+            p.quantity,
+            p.unit_price,
+            p.total_amount,
+            p.purchase_date,
+            p.status,
+            p.remark,
+            p.create_time,
+            p.update_time,
+            COALESCE(pr.name, '') AS product_name,
+            COALESCE(s.name, '') AS supplier_name
+        FROM purchase p
+        LEFT JOIN product pr ON p.product_id = pr.id AND pr.status = 1
+        LEFT JOIN supplier s ON p.supplier_id = s.id AND s.status = 1
+        <where>
+            <if test="params.shopId != null and params.shopId != ''">
+                AND p.shop_id = #{params.shopId}
+            </if>
+            <if test="params.productName != null and params.productName != ''">
+                AND pr.name LIKE CONCAT('%', #{params.productName}, '%')
+            </if>
+            <if test="params.supplierName != null and params.supplierName != ''">
+                AND s.name LIKE CONCAT('%', #{params.supplierName}, '%')
+            </if>
+            <if test="params.status != null">
+                AND p.status = #{params.status}
+            </if>
+            <if test="params.startDate != null and params.startDate != ''">
+                AND p.purchase_date &gt;= #{params.startDate}
+            </if>
+            <if test="params.endDate != null and params.endDate != ''">
+                AND p.purchase_date &lt;= #{params.endDate}
+            </if>
+        </where>
+        ORDER BY p.purchase_date DESC
+    </select>
+
+</mapper>
