@@ -10,7 +10,7 @@
  merchant_private_key=""
  alipay_public_key=""
 ```
-3.智普图片生成api
+3.智普图片生成描述api
 路径:
 <br>\orderfoodafter\src\main\java\org\example\orderfoodafter\service\impl\AiServiceImpl.java<br>
 去[智普开放平台](https://open.bigmodel.cn/)申请api
