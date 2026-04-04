@@ -5,10 +5,12 @@ on:
   
 jobs:
   build:
+
     runs-on: ubuntu-latest
      
     steps:
      - uses: actions/checkout@v4
+
 
      - name: 安装所需依赖
        run: |
@@ -18,28 +20,28 @@ jobs:
 
      - name: 下载项目源码
        run: |
-         cd $GITHUB_WORKSPACE/buildproject_workspace/
-         git clone https://github.com/lijilong34/orderfood.git
+        cd $GITHUB_WORKSPACE/buildproject_workspace/
+        git clone https://github.com/lijilong34/orderfood.git
          
      - name: 开始编译后端项目
        run: |
-         cd $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodafter/
-         mvn clean package -DskipTests
+        cd $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodafter/
+        mvn clean package -DskipTests
   
      - name: 开始编译前端项目
-       run: |
-         cd $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfootbefore/
-         npm install
-         npm run build
+      run: |
+        cd $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfootbefore/
+        npm install
+        npm run build
 
      - name: 上传后端项目
        uses: actions/upload-artifact@v4
        with:
-         name: orderfoodafter-${{ github.run_id }}.jar
-         path: ${{ github.workspace }}/buildproject_workspace/orderfood/orderfoodafter/target/*.jar
+        name: orderfoodafter-$(date +%s)-SNAPSHOT.jar
+        path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfoodafter/target/orderfoodafter-*-SNAPSHOT.jar
 
      - name: 上传前端项目
        uses: actions/upload-artifact@v4
        with:
-         name: orderfootbefore-${{ github.run_id }}
-         path: ${{ github.workspace }}/buildproject_workspace/orderfood/orderfootbefore/dist/
+         name: orderfootbefore-$(date +%s)
+         path: $GITHUB_WORKSPACE/buildproject_workspace/orderfood/orderfootbefore/dist/*
