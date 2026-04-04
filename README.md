@@ -17,6 +17,7 @@
 详见[部署教程](docs/buildproject.md)
 ## 关于浏览器辅助操作
 [mcp-chrome](https://github.com/hangwin/mcp-chrome/releases)
+这个工具只能有一个实例，请自行解决多实例问题。
 ## 联系作者
 ![微信联系](imeage/author.jpg)
 ## 支持作者
