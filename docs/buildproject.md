@@ -20,7 +20,7 @@ cd orderfood/orderfootbefore
 npm install
 npm run build
 ```
-三.上传到服务器
+三.上传到服务器<br>
 四.启动后端
 ```shell
 java -jar target\jar文件
